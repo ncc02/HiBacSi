@@ -48,7 +48,10 @@ class LoginView(APIView):
 
 class RegisterUser(APIView):
     def post(self, request):
-        serializer = AccountSerializer(data=request.data)
+        data=request.data.copy()
+        data['role'] = 'user'
+        data['password'] = hash_password(data['password'])
+        serializer = AccountSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
             return Response({'state': True, 'message': 'Registration successful.'})

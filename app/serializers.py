@@ -6,11 +6,6 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = '__all__'
 
-class AccountSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Account
-        fields = '__all__'
-
 class RegisterUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -36,7 +31,6 @@ class AccountSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('Username already exists.')
         if Account.objects.filter(email=email).exists():
             raise serializers.ValidationError('Email already exists.')
-        data['role'] = 'user'
-        data['password'] = hash_password(data['password'])
+        
         return data
     
