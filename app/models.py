@@ -1,5 +1,6 @@
 from django.db import models
 
+
 # Create your models here.
 
 class Account(models.Model):
@@ -9,7 +10,6 @@ class Account(models.Model):
     email = models.EmailField(unique=True)
     #role : user, admin, doctor, hospital
     role = models.CharField(max_length=10, default='user')
-    id_role = models.IntegerField(null=True, blank=True)
 
     def __str__(self):
         return self.username
