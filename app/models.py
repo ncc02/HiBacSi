@@ -15,7 +15,8 @@ class Account(models.Model):
         return self.username
 
 class User(models.Model):
-    
+
+    account = models.OneToOneField(Account, on_delete=models.CASCADE, related_name='user', null=True)
     name = models.CharField(max_length=255)
     gender = models.BooleanField()
     phone = models.CharField(max_length=20, null=True, blank=True)
@@ -25,11 +26,21 @@ class User(models.Model):
     def __str__(self):
         return f'UserInfo #{self.id}'
 
+class Admin(models.Model):
 
+    account = models.OneToOneField(Account, on_delete=models.CASCADE, related_name='admin', null=True)
+    name = models.CharField(max_length=255)
+    gender = models.BooleanField()
+    phone = models.CharField(max_length=20, null=True, blank=True)
+    address = models.TextField(null=True, blank=True)
+    birthday = models.DateField(null=True, blank=True)
+
+    def __str__(self):
+        return f'AdminInfo #{self.id}'
 
 class Doctor(models.Model):
 
-    
+    account = models.OneToOneField(Account, on_delete=models.CASCADE, related_name='doctor', null=True)
     name = models.CharField(max_length=255)
     address = models.CharField(max_length=255)
     id_specialty = models.IntegerField()  # Thay thế bằng khoá ngoại đến model Chuyên khoa (Specialty)
@@ -47,6 +58,7 @@ class Doctor(models.Model):
 
 class Hospital(models.Model):
     
+    account = models.OneToOneField(Account, on_delete=models.CASCADE, related_name='hospital',null=True)
     name = models.CharField(max_length=255)
     email = models.EmailField()
     address = models.CharField(max_length=255)
