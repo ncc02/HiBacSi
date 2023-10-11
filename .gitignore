@@ -1,1 +1,5 @@
+.env
 env/
+.venv/
+READEME.md
+__pycache__/
