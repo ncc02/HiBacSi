@@ -1,0 +1,4 @@
+.env
+.venv/
+READEME.md
+hibacsi/__pycache__/
