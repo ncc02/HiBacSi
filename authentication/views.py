@@ -27,15 +27,17 @@ class LoginView(GenericAPIView):
         return Response({'detail': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
     
 class RegisterView(GenericAPIView):
-    serializer_class = UserSerializer
+    serializer_class = AccountSerializer
     def post(self, request):
-        data = request.data
-        serializer = UserSerializer(data=data)
+        data = request.data.copy()
+        data['role'] = 'user'
+        data['password'] = utils.hash_password(data['password'])
+        serializer = AccountSerializer(data=data)
         if serializer.is_valid():
-            user = serializer.save()
+            account = serializer.save()
             auth_token = jwt.encode(
-                {'username': user.username}, settings.JWT_SECRET_KEY)
-            data = {'user': serializer.data, 'token': auth_token}
+                {'username': account.username}, settings.JWT_SECRET_KEY)
+            data = {'acccount': serializer.data, 'token': auth_token}
             return Response(data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 # class RegisterUser(APIView):
