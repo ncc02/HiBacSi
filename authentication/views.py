@@ -12,6 +12,7 @@ import app.utils as utils
 
 # Create your views here.
 class LoginView(GenericAPIView):
+    serializer_class = AccountSerializer
     def post(self, request):
         data = request.data
         username = data.get('username', '')

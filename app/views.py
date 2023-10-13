@@ -8,41 +8,41 @@ from .models import Account
 import app.utils as utils
 import os
 
-class LoginView(APIView):
-    def post(self, request):
-        username = request.data.get('username')
-        password = request.data.get('password')
+# class LoginView(APIView):
+#     def post(self, request):
+#         username = request.data.get('username')
+#         password = request.data.get('password')
 
-        success = utils.login_success(username=username, password=password)
+#         success = utils.login_success(username=username, password=password)
  
-        if success:
-            # Đăng nhập thành công
-            account = Account.objects.get(username=username)
-            account_data = AccountSerializer(account).data
-            auth_token = utils.generate_access_token(account)
-            response_data = {
-                'state': True,
-                'account': account_data,
-                'token': auth_token
-            }
-            return Response(response_data, status=status.HTTP_200_OK)
-        else:
-            # Đăng nhập thất bại
-            response_data = {'state': False, 'message': 'Invalid username or password'}
-            return Response(response_data, status=status.HTTP_401_UNAUTHORIZED)
+#         if success:
+#             # Đăng nhập thành công
+#             account = Account.objects.get(username=username)
+#             account_data = AccountSerializer(account).data
+#             auth_token = utils.generate_access_token(account)
+#             response_data = {
+#                 'state': True,
+#                 'account': account_data,
+#                 'token': auth_token
+#             }
+#             return Response(response_data, status=status.HTTP_200_OK)
+#         else:
+#             # Đăng nhập thất bại
+#             response_data = {'state': False, 'message': 'Invalid username or password'}
+#             return Response(response_data, status=status.HTTP_401_UNAUTHORIZED)
 
 
-class RegisterUser(APIView):
-    def post(self, request):
-        data=request.data.copy()
-        data['role'] = 'user'
-        data['password'] = utils.hash_password(data['password'])
-        serializer = AccountSerializer(data=data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({'state': True, 'message': 'Registration successful.'})
-        else:
-            return Response({'state': False, 'message': serializer.errors})
+# class RegisterUser(APIView):
+#     def post(self, request):
+#         data=request.data.copy()
+#         data['role'] = 'user'
+#         data['password'] = utils.hash_password(data['password'])
+#         serializer = AccountSerializer(data=data)
+#         if serializer.is_valid():
+#             serializer.save()
+#             return Response({'state': True, 'message': 'Registration successful.'})
+#         else:
+#             return Response({'state': False, 'message': serializer.errors})
         
 
 
