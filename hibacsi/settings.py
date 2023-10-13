@@ -28,10 +28,21 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+# CORS_ALLOWED_ORIGINS = [
+#     "https://ncc02.pythonanywhere.com",  # Thay bằng địa chỉ trang web của frontend
+#      "http://192.168.1.2",
+# ]
+
+# # Thêm sau đoạn cấu hình CORS
+# CORS_URLS_REGEX = r'^/swagger/'
+
 
 # Application definition
 
 INSTALLED_APPS = [
+    # 'corsheaders', #13/10/2023
     'rest_framework',
     'app',
     'authentication',
@@ -51,6 +62,8 @@ REST_FRAMEWORK = {
 }
 
 MIDDLEWARE = [
+
+    # 'corsheaders.middleware.CorsMiddleware', #13/10/2023
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
