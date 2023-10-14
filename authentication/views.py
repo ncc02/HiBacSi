@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 
 # Create your views here.
 class LoginView(GenericAPIView):
+    serializer_class = AccountSerializer
     def post(self, request):
         data = request.data
         username = data.get('username', '')
