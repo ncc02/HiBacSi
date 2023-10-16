@@ -64,7 +64,7 @@ def hash_password(password):
 class AccountSerializer(serializers.ModelSerializer):
     class Meta:
         model = Account
-        fields = ['username', 'password', 'email', 'role']
+        fields = ['id', 'username', 'password', 'email', 'role']
 
     # def validate(self, data):
     #     username = data.get('username')
@@ -77,3 +77,17 @@ class AccountSerializer(serializers.ModelSerializer):
         
     #     return data
     
+class LoginSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Account
+        fields = ['username', 'password', 'email']
+
+class RegisterSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Account
+        fields = ['username', 'password', 'email']
+
+class TokenSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Account
+        fields = ['refresh_token']

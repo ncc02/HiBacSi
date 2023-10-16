@@ -10,7 +10,7 @@ class Account(models.Model):
     email = models.EmailField(unique=True)
     #role : user, admin, doctor, hospital
     role = models.CharField(max_length=10, default='user')
-
+    refresh_token = models.CharField(max_length=255, null=True, blank=True)
     def __str__(self):
         return self.username
 
@@ -18,7 +18,7 @@ class User(models.Model):
 
     account = models.OneToOneField(Account, on_delete=models.CASCADE, related_name='user', null=True)
     name = models.CharField(max_length=255)
-    gender = models.BooleanField()
+    gender = models.BooleanField(null=True, blank=True)
     phone = models.CharField(max_length=20, null=True, blank=True)
     address = models.TextField(null=True, blank=True)
     birthday = models.DateField(null=True, blank=True)
@@ -30,7 +30,7 @@ class Admin(models.Model):
 
     account = models.OneToOneField(Account, on_delete=models.CASCADE, related_name='admin', null=True)
     name = models.CharField(max_length=255)
-    gender = models.BooleanField()
+    gender = models.BooleanField(null=True, blank=True)
     phone = models.CharField(max_length=20, null=True, blank=True)
     address = models.TextField(null=True, blank=True)
     birthday = models.DateField(null=True, blank=True)
@@ -47,7 +47,7 @@ class Doctor(models.Model):
     id_hospital = models.IntegerField()  # Thay thế bằng khoá ngoại đến model Bệnh viện (Hospital)
     phone = models.CharField(max_length=20)
     birthday = models.DateField()
-    gender = models.BooleanField()
+    gender = models.BooleanField(null=True, blank=True)
     years_of_experience = models.IntegerField()
     descripe = models.TextField()
     price = models.DecimalField(max_digits=10, decimal_places=2)  # Sử dụng DecimalField cho tiền tối ưu
