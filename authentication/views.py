@@ -41,6 +41,7 @@ class RegisterView(GenericAPIView):
             data = {'acccount': serializer.data, 'token': auth_token}
             return Response(data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
 # class RegisterUser(APIView):
 #     def post(self, request):
 #         data=request.data.copy()

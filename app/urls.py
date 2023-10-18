@@ -4,6 +4,7 @@ from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
 
+router.register(r'accounts', AccountViewSet)
 router.register(r'users', UserViewSet)
 router.register(r'admins', AdminViewSet)
 router.register(r'doctors', DoctorViewSet)
