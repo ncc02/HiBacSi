@@ -7,7 +7,9 @@ from app.serializers import TokenSerializer, AccountSerializer
 import app.utils as utils
 
 # Create your views here.
+from rest_framework.decorators import authentication_classes, permission_classes
 
+@authentication_classes([])
 class TokenRefreshView(GenericAPIView):
     serializer_class = TokenSerializer
     def post(self, request):
