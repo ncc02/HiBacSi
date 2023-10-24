@@ -3,6 +3,9 @@ from rest_framework.response import Response
 from rest_framework import status
 from .serializers import *
 from .models import Account  
+from app.permissions import IsAdminPermission, IsDoctorPermission, IsHospitalPermission, IsUserPermission
+import app.utils as utils
+from rest_framework.decorators import authentication_classes, permission_classes
 # from django.conf import settings
 # import jwt
 import app.utils as utils
@@ -49,42 +52,57 @@ import os
 from rest_framework import viewsets
 
 
+@authentication_classes([]) 
+class AccountViewSet(viewsets.ModelViewSet):
+    queryset = Account.objects.all()
+    serializer_class = AccountSerializer
+
+@authentication_classes([]) 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
+@authentication_classes([]) 
 class AdminViewSet(viewsets.ModelViewSet):
     queryset = Admin.objects.all()
     serializer_class = AdminSerializer
 
+@authentication_classes([]) 
 class DoctorViewSet(viewsets.ModelViewSet):
     queryset = Doctor.objects.all()
     serializer_class = DoctorSerializer
 
+@authentication_classes([]) 
 class HospitalViewSet(viewsets.ModelViewSet):
     queryset = Hospital.objects.all()
     serializer_class = HospitalSerializer
 
+@authentication_classes([]) 
 class SpecialtyViewSet(viewsets.ModelViewSet):
     queryset = Specialty.objects.all()
     serializer_class = SpecialtySerializer
 
+@authentication_classes([]) 
 class ServiceViewSet(viewsets.ModelViewSet):
     queryset = Service.objects.all()
     serializer_class = ServiceSerializer
 
+@authentication_classes([]) 
 class ScheduleViewSet(viewsets.ModelViewSet):
     queryset = Schedule.objects.all()
     serializer_class = ScheduleSerializer
 
+@authentication_classes([]) 
 class AppointmentViewSet(viewsets.ModelViewSet):
     queryset = Appointment.objects.all()
     serializer_class = AppointmentSerializer
 
+@authentication_classes([]) 
 class ServiceDoctorViewSet(viewsets.ModelViewSet):
     queryset = ServiceDoctor.objects.all()
     serializer_class = ServiceDoctorSerializer
 
+@authentication_classes([]) 
 class ToolViewSet(viewsets.ModelViewSet):
     queryset = Tool.objects.all()
     serializer_class = ToolSerializer

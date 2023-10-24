@@ -38,6 +38,16 @@ CORS_ALLOW_CREDENTIALS = True
 # # Thêm sau đoạn cấu hình CORS
 # CORS_URLS_REGEX = r'^/swagger/'
 
+SWAGGER_SETTINGS = {
+   'USE_SESSION_AUTH': False
+}
+
+# import mimetypes
+# mimetypes.add_type("text/css", ".css", True)
+
+# WHITENOISE_MIMETYPES = {
+    # '.xsl': 'application/xml'
+# }
 
 # Application definition
 
@@ -65,8 +75,9 @@ REST_FRAMEWORK = {
 
 MIDDLEWARE = [
 
-    # 'corsheaders.middleware.CorsMiddleware', #13/10/2023
+    'corsheaders.middleware.CorsMiddleware', #13/10/2023
     'django.middleware.security.SecurityMiddleware',
+    #  "whitenoise.middleware.WhiteNoiseMiddleware",
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -143,7 +154,13 @@ JWT_SECRET_KEY = config('JWT_SECRET_KEY')
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
-STATIC_URL = 'static/'  
+STATIC_URL = 'static/'
+# import os
+# STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+
+STATIC_ROOT = "/home/ncc02/hibacsi/static"
+# or, eg,
+# STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
