@@ -92,6 +92,25 @@ class ScheduleViewSet(viewsets.ModelViewSet):
     queryset = Schedule.objects.all()
     serializer_class = ScheduleSerializer
 
+@authentication_classes([])
+class SchedulerDoctorViewSet(viewsets.ModelViewSet):
+    queryset = Scheduler_Doctor.objects.all()
+    serializer_class = SchedulerDoctorSerializer
+    # create
+    def create(self, request, *args, **kwargs):
+        data = request.data.copy()
+        print(data['id_doctor_id'])
+        data['id_doctor'] = Doctor.objects.get(id = data['id_doctor_id'])
+        data['id_schedule'] = Schedule.objects.get(id = data['id_schedule_id'])
+        if (data['id_doctor'] == None or data['id_schedule'] == None):
+            return Response({'detail': 'no find doctor or schedule'}, status=status.HTTP_400_BAD_REQUEST)
+        if (Scheduler_Doctor.objects.filter(id_doctor=data['id_doctor'], id_schedule=data['id_schedule']).exists()):
+            return Response({'detail': 'schedule_doctor is exist'}, status=status.HTTP_400_BAD_REQUEST)
+        schedule_doctor = Scheduler_Doctor.objects.create(id_doctor=data['id_doctor'], id_schedule=data['id_schedule'])
+        schedule_doctor.save()
+        serializer = SchedulerDoctorSerializer(schedule_doctor)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 @authentication_classes([]) 
 class AppointmentViewSet(viewsets.ModelViewSet):
     queryset = Appointment.objects.all()

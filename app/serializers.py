@@ -36,6 +36,12 @@ class ScheduleSerializer(serializers.ModelSerializer):
         model = Schedule
         fields = '__all__'
 
+class SchedulerDoctorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Scheduler_Doctor
+        # all except id_doctor and id_schedule
+        fields = ['id', 'id_doctor_id', 'id_schedule_id']
+
 class AppointmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Appointment
@@ -91,3 +97,9 @@ class TokenSerializer(serializers.ModelSerializer):
     class Meta:
         model = Account
         fields = ['refresh_token']
+
+class BookingSerializer(serializers.ModelSerializer):
+    id_doctor = serializers.IntegerField()
+    id_schedule = serializers.IntegerField()
+    date = serializers.DateField()
+    time = serializers.TimeField()

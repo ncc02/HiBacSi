@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'drf_yasg',
+    'corsheaders',
 ]
 
 REST_FRAMEWORK = {
@@ -74,8 +75,7 @@ REST_FRAMEWORK = {
 }
 
 MIDDLEWARE = [
-
-    'corsheaders.middleware.CorsMiddleware', #13/10/2023
+    'corsheaders.middleware.CorsMiddleware', 
     'django.middleware.security.SecurityMiddleware',
     #  "whitenoise.middleware.WhiteNoiseMiddleware",
     'django.contrib.sessions.middleware.SessionMiddleware',
