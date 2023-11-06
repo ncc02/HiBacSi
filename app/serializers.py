@@ -1,22 +1,36 @@
 from rest_framework import serializers
 from .models import *
 
+class AccountSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Account
+        fields = ['id', 'username', 'password', 'email', 'role']
+
+    # def validate(self, data):
+    #     username = data.get('username')
+    #     email = data.get('email')
+
+    #     if Account.objects.filter(username=username).exists():
+    #         raise serializers.ValidationError('Username already exists.')
+    #     if Account.objects.filter(email=email).exists():
+    #         raise serializers.ValidationError('Email already exists.')
+        
+    #     return data
+
 class UserSerializer(serializers.ModelSerializer):
+    account = AccountSerializer()
     class Meta:
         model = User
         fields = '__all__'
 
 class AdminSerializer(serializers.ModelSerializer):
+    account = AccountSerializer()
     class Meta:
         model = Admin
         fields = '__all__'
 
-class DoctorSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Doctor
-        fields = '__all__'
-
 class HospitalSerializer(serializers.ModelSerializer):
+    account = AccountSerializer()
     class Meta:
         model = Hospital
         fields = '__all__'
@@ -24,6 +38,20 @@ class HospitalSerializer(serializers.ModelSerializer):
 class SpecialtySerializer(serializers.ModelSerializer):
     class Meta:
         model = Specialty
+        fields = '__all__'
+
+class SpecialtyDoctorSerializer(serializers.ModelSerializer):
+  specialty = SpecialtySerializer()
+  class Meta:
+    model = SpecialtyDoctor
+    fields = '__all__' 
+
+class DoctorSerializer(serializers.ModelSerializer):
+    account = AccountSerializer()
+    hospital = HospitalSerializer()
+    specialties = SpecialtyDoctorSerializer(many=True, source='specialtydoctor_set')
+    class Meta:
+        model = Doctor
         fields = '__all__'
 
 class ServiceSerializer(serializers.ModelSerializer):
@@ -66,22 +94,6 @@ def hash_password(password):
     salted_password = password + salt
     hashed_password = hashlib.sha256(salted_password.encode('utf-8')).hexdigest()
     return hashed_password
-
-class AccountSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Account
-        fields = ['id', 'username', 'password', 'email', 'role']
-
-    # def validate(self, data):
-    #     username = data.get('username')
-    #     email = data.get('email')
-
-    #     if Account.objects.filter(username=username).exists():
-    #         raise serializers.ValidationError('Username already exists.')
-    #     if Account.objects.filter(email=email).exists():
-    #         raise serializers.ValidationError('Email already exists.')
-        
-    #     return data
     
 class LoginSerializer(serializers.ModelSerializer):
     class Meta:

@@ -76,6 +76,22 @@ class DoctorViewSet(viewsets.ModelViewSet):
 class HospitalViewSet(viewsets.ModelViewSet):
     queryset = Hospital.objects.all()
     serializer_class = HospitalSerializer
+    # def list(self, request, *args, **kwargs):
+    #     hospital = Hospital.objects.all()
+    #     content = {
+    #         **HospitalSerializer(hospital).data,
+    #         'account': AccountSerializer(hospital.account).data
+    #     }
+    #     return Response(content, status=status.HTTP_200_OK)
+
+    def read(self, request, *args, **kwargs):
+        hospital = Hospital.objects.get(id = kwargs['pk'])
+        # serializer = HospitalSerializer(hospital)
+        content = {
+            **HospitalSerializer(hospital).data,
+            'account': AccountSerializer(hospital.account).data
+        }
+        return Response(content, status=status.HTTP_200_OK)
 
 @authentication_classes([]) 
 class SpecialtyViewSet(viewsets.ModelViewSet):
@@ -120,6 +136,30 @@ class AppointmentViewSet(viewsets.ModelViewSet):
 class ServiceDoctorViewSet(viewsets.ModelViewSet):
     queryset = ServiceDoctor.objects.all()
     serializer_class = ServiceDoctorSerializer
+
+@authentication_classes([]) 
+class SpecialtyDoctorViewSet(viewsets.ModelViewSet):
+    queryset = SpecialtyDoctor.objects.all()
+    serializer_class = SpecialtyDoctorSerializer
+    # create
+    def create(self, request, *args, **kwargs):
+        data = request.data.copy()
+        try:
+            data['specialty'] = Specialty.objects.get(id = data['specialty_id'])
+        except:
+            data['specialty'] = None
+        try:
+            data['doctor'] = Doctor.objects.get(id = data['doctor_id'])
+        except:
+            data['doctor'] = None
+        if (data['specialty'] == None or data['doctor'] == None):
+            return Response({'detail': 'no find specialty or doctor'}, status=status.HTTP_400_BAD_REQUEST)
+        if (SpecialtyDoctor.objects.filter(specialty=data['specialty'], doctor=data['doctor']).exists()):
+            return Response({'detail': 'specialty_doctor is exist'}, status=status.HTTP_400_BAD_REQUEST)
+        specialty_doctor = SpecialtyDoctor.objects.create(specialty=data['specialty'], doctor=data['doctor'])
+        specialty_doctor.save()
+        serializer = SpecialtyDoctorSerializer(specialty_doctor)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 @authentication_classes([]) 
 class ToolViewSet(viewsets.ModelViewSet):

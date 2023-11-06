@@ -21,12 +21,17 @@ class BookingView(GenericAPIView):
         id_doctor = data.get('id_doctor', '')
         id_schedule = data.get('id_schedule', '')
         date = data.get('date', '')
+        time = data.get('time', '')
         if (id_doctor == '' or id_schedule == '' or date == ''): 
             return Response({'detail': 'Empty data: need id_doctor, id_schedule, date'}, status=status.HTTP_400_BAD_REQUEST)
         date = datetime.datetime.strptime(date, '%Y/%m/%d').date()
         if (date < datetime.date.today()):
             return Response({'detail': 'Date is invalid'}, status=status.HTTP_400_BAD_REQUEST)
-        print(date, data)
+        if (time == ''): 
+            time = None
+        else:
+            time = datetime.datetime.strptime(time, '%H:%M').time()
+        print(time, date, data)
         # get user by account
         user = User.objects.get(account=request.account)
         # check user has phone number
@@ -36,16 +41,16 @@ class BookingView(GenericAPIView):
         if (user.address == ''):
             return Response({'detail': 'User has not address'}, status=status.HTTP_400_BAD_REQUEST)
         # get Schedule_Doctor by id_doctor and id_schedule
-        scheduleDoctor = Scheduler_Doctor.objects.get(id_doctor_id=id_doctor, id_schedule_id=id_schedule)
+        scheduleDoctor = Scheduler_Doctor.objects.get(doctor_id=id_doctor, schedule_id=id_schedule)
         # check Schedule_Doctor is not null
         if (scheduleDoctor == None):
             return Response({'detail': 'Schedule_Doctor does not exist'}, status=status.HTTP_400_BAD_REQUEST)
         # check Schedule_Doctor is not full
-        is_full = Appointment.objects.filter(id_schedule_doctor=scheduleDoctor, date=date).count() > 0
+        is_full = Appointment.objects.filter(schedule_doctor=scheduleDoctor, date=date).count() > 0
         if (is_full):
             return Response({'detail': 'Schedule_Doctor is full'}, status=status.HTTP_400_BAD_REQUEST)
         # create Booking
-        appointment = Appointment.objects.create(id_schedule_doctor=scheduleDoctor, id_user=user, date=date)
+        appointment = Appointment.objects.create(schedule_doctor=scheduleDoctor, user=user, date=date, time=time)
         appointment.save()
         appointment = AppointmentSerializer(appointment)
         # return Booking
