@@ -7,11 +7,9 @@ class JWTAuthentication(authentication.BaseAuthentication):
     def authenticate(self, request):
         print('JWTAuthentication')
         auth_data = authentication.get_authorization_header(request)
-        print('forbidden')
         if not auth_data:
             raise exceptions.AuthenticationFailed('No token found')
         prefix, access_token = auth_data.decode('utf-8').split(' ')
-        print('forbidden')
         try: 
             payload = jwt.decode(access_token, settings.JWT_SECRET_KEY, algorithms='HS256')
             account = Account.objects.get(username=payload['username'])

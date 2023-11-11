@@ -99,7 +99,11 @@ class RegisterViewDoctor(GenericAPIView):
         if account.is_valid():
             account_results = account.save()
             refresh_token, access_token = utils.generateTokens(account_results)
-            doctor = Doctor.objects.create(account=account_results)
+            # get hospital id
+            hospital = Hospital.objects.get(account=request.account)
+            # Đảm bảo rằng `data` chỉ chứa các thuộc tính mà `Doctor` chấp nhận
+            filtered_data = {key: value for key, value in data.items() if hasattr(Doctor, key)}
+            doctor = Doctor.objects.create(account=account_results, id_hospital=hospital, **filtered_data)
             doctor.save()
             doctor = DoctorSerializer(doctor)
             serializer = {'doctor': doctor.data, 'account': account.data, 'refresh_token': refresh_token, 'access_token': access_token}
