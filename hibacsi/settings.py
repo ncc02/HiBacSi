@@ -156,9 +156,14 @@ JWT_SECRET_KEY = config('JWT_SECRET_KEY')
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
-STATIC_URL = 'static/'
-# import os
-# STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+
+
+##### 11/11 ###########
+# STATIC_URL = 'static/'
+import os
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+###### 11/11 ###########
 
 STATIC_ROOT = "/home/ncc02/hibacsi/static"
 # or, eg,

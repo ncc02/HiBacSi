@@ -10,6 +10,7 @@ class Account(models.Model):
     #role : user, admin, doctor, hospital
     role = models.CharField(max_length=10, default='user')
     refresh_token = models.CharField(max_length=255, null=True, blank=True)
+    avatar = models.ImageField(upload_to='static/avatars/', null=True)
     def __str__(self):
         return self.username
 

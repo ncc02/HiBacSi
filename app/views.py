@@ -11,6 +11,13 @@ from rest_framework.decorators import authentication_classes, permission_classes
 import app.utils as utils
 import os
 
+import datetime
+def print_log(message):
+    # log_file_path = os.path.join(settings.BASE_DIR, 'log.txt')
+    # with open(log_file_path, 'a') as log_file:
+    #     log_file.write(str(datetime.datetime.now()) + '\n' + message + '\n\n')
+    pass
+
 # class LoginView(APIView):
 #     def post(self, request):
 #         username = request.data.get('username')
@@ -56,6 +63,29 @@ from rest_framework import viewsets
 class AccountViewSet(viewsets.ModelViewSet):
     queryset = Account.objects.all()
     serializer_class = AccountSerializer
+
+    def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        
+        print_log("partial_update")
+
+        if 'avatar' in request.data:
+            # Xóa ảnh cũ
+            print_log("xoa anh cu")
+
+            if instance.avatar:
+                path = instance.avatar.path
+                print_log(f"Removing old image. Path: {path}, Media Root: {settings.MEDIA_ROOT}")
+                if os.path.isfile(os.path.join(settings.MEDIA_ROOT, path)):
+                    os.remove(os.path.join(settings.MEDIA_ROOT, path))
+                    
+            # Lưu ảnh mới
+            instance.avatar = request.data['avatar']
+
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 @authentication_classes([]) 
 class UserViewSet(viewsets.ModelViewSet):
@@ -165,3 +195,26 @@ class SpecialtyDoctorViewSet(viewsets.ModelViewSet):
 class ToolViewSet(viewsets.ModelViewSet):
     queryset = Tool.objects.all()
     serializer_class = ToolSerializer
+
+
+from django.conf import settings
+from rest_framework import generics
+
+    
+# class PasswordUpdateAPIView(generics.UpdateAPIView):
+#     queryset = Account.objects.all()
+#     serializer_class = UserPasswordUpdateSerializer
+#     #permission_classes = [permissions.IsAuthenticated]
+
+#     def patch(self, request, *args, **kwargs):
+#         instance = self.get_object()
+#         oldpassword = request.data.get('oldpassword')
+#         newpassword = make_password(request.data.get('password'))
+#         if check_password(oldpassword, instance.password):
+#             instance.password = newpassword
+#             instance.save(update_fields=['password'])
+#             serializer = self.get_serializer(instance)
+#             return Response({'message': 'Password Changed'}, status=status.HTTP_200_OK)
+#         else:
+#             return Response({'message': 'Incorrect Old Password'}, status=status.HTTP_400_BAD_REQUEST)
+        
