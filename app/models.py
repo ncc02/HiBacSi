@@ -3,14 +3,14 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 # Create your models here.
 
 class Account(models.Model):
-    
+
     username = models.CharField(max_length=255, unique=True)
     password = models.CharField(max_length=255)
     email = models.EmailField(unique=True)
     #role : user, admin, doctor, hospital
     role = models.CharField(max_length=10, default='user')
     refresh_token = models.CharField(max_length=255, null=True, blank=True)
-    avatar = models.ImageField(upload_to='static/avatars/', null=True)
+    avatar = models.ImageField(upload_to='media/', null=True)
     def __str__(self):
         return self.username
 
@@ -46,7 +46,7 @@ class Specialty(models.Model):
         return self.name
 
 class Hospital(models.Model):
-    
+
     account = models.OneToOneField(Account, on_delete=models.CASCADE, related_name='hospital',null=True)
     name = models.CharField(max_length=255)
     email = models.EmailField()
@@ -74,21 +74,21 @@ class Doctor(models.Model):
 
     def __str__(self):
         return self.name
-    
+
 class SpecialtyDoctor(models.Model):
     specialty = models.ForeignKey(Specialty, on_delete=models.CASCADE)
     doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE)
 
     def __str__(self):
         return f"Chuyên khoa {self.specialty} của Bác sĩ {self.doctor}"
-    
+
 class Service(models.Model):
-    
+
     name = models.CharField(max_length=255)
     descripe = models.TextField()
 
     def __str__(self):
-        return self.name    
+        return self.name
 
 class Schedule(models.Model):
     days_of_week = models.IntegerField() # 1:CN, 2:T2, 3:T3, 4:T4, 5:T5, 6:T6, 7:T7
@@ -97,13 +97,13 @@ class Schedule(models.Model):
 
     def __str__(self):
         return f"Lịch làm việc vào các ngày {self.days_of_week} từ {self.start} đến {self.end}"
-    
+
 class Scheduler_Doctor(models.Model):
     doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE)
     schedule = models.ForeignKey(Schedule, on_delete=models.CASCADE)
     def __str__(self):
         return f"Lịch làm việc của Bác sĩ {self.doctor} trong khoảng thời gian {self.schedule}"
-    
+
 class Appointment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)  # Khoá ngoại liên kết đến User
     schedule_doctor = models.ForeignKey(Scheduler_Doctor, on_delete=models.CASCADE, default=0)  # Khoá ngoại liên kết đến Scheduler_Doctor
@@ -112,14 +112,14 @@ class Appointment(models.Model):
 
     def __str__(self):
         return f"Lịch hẹn ngày {self.date} vào {self.time}"
-    
+
 class ServiceDoctor(models.Model):
     service = models.ForeignKey(Service, on_delete=models.CASCADE)
     doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE)
 
     def __str__(self):
         return f"Dịch vụ {self.service} của Bác sĩ {self.doctor}"
-    
+
 
 from django.db.models import JSONField
 

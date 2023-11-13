@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .serializers import *
-from .models import Account  
+from .models import Account
 from app.permissions import IsAdminPermission, IsDoctorPermission, IsHospitalPermission, IsUserPermission
 import app.utils as utils
 from rest_framework.decorators import authentication_classes, permission_classes
@@ -13,9 +13,9 @@ import os
 
 import datetime
 def print_log(message):
-    # log_file_path = os.path.join(settings.BASE_DIR, 'log.txt')
-    # with open(log_file_path, 'a') as log_file:
-    #     log_file.write(str(datetime.datetime.now()) + '\n' + message + '\n\n')
+    log_file_path = os.path.join(settings.BASE_DIR, 'log.txt')
+    with open(log_file_path, 'a') as log_file:
+        log_file.write(str(datetime.datetime.now()) + '\n' + message + '\n\n')
     pass
 
 # class LoginView(APIView):
@@ -24,7 +24,7 @@ def print_log(message):
 #         password = request.data.get('password')
 
 #         success = utils.login_success(username=username, password=password)
- 
+
 #         if success:
 #             # Đăng nhập thành công
 #             account = Account.objects.get(username=username)
@@ -53,13 +53,13 @@ def print_log(message):
 #             return Response({'state': True, 'message': 'Registration successful.'})
 #         else:
 #             return Response({'state': False, 'message': serializer.errors})
-        
+
 
 
 from rest_framework import viewsets
 
 
-@authentication_classes([]) 
+@authentication_classes([])
 class AccountViewSet(viewsets.ModelViewSet):
     queryset = Account.objects.all()
     serializer_class = AccountSerializer
@@ -68,7 +68,7 @@ class AccountViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        
+
         print_log("partial_update")
 
         if 'avatar' in request.data:
@@ -80,29 +80,29 @@ class AccountViewSet(viewsets.ModelViewSet):
                 print_log(f"Removing old image. Path: {path}, Media Root: {settings.MEDIA_ROOT}")
                 if os.path.isfile(os.path.join(settings.MEDIA_ROOT, path)):
                     os.remove(os.path.join(settings.MEDIA_ROOT, path))
-                    
+
             # Lưu ảnh mới
             instance.avatar = request.data['avatar']
-
+            print_log(f"Anh moi dc luu tai Path: {instance.avatar.path}")
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-@authentication_classes([]) 
+@authentication_classes([])
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
-@authentication_classes([]) 
+@authentication_classes([])
 class AdminViewSet(viewsets.ModelViewSet):
     queryset = Admin.objects.all()
     serializer_class = AdminSerializer
 
-@authentication_classes([]) 
+@authentication_classes([])
 class DoctorViewSet(viewsets.ModelViewSet):
     queryset = Doctor.objects.all()
     serializer_class = DoctorSerializer
 
-@authentication_classes([]) 
+@authentication_classes([])
 class HospitalViewSet(viewsets.ModelViewSet):
     queryset = Hospital.objects.all()
     serializer_class = HospitalSerializer
@@ -123,17 +123,17 @@ class HospitalViewSet(viewsets.ModelViewSet):
         }
         return Response(content, status=status.HTTP_200_OK)
 
-@authentication_classes([]) 
+@authentication_classes([])
 class SpecialtyViewSet(viewsets.ModelViewSet):
     queryset = Specialty.objects.all()
     serializer_class = SpecialtySerializer
 
-@authentication_classes([]) 
+@authentication_classes([])
 class ServiceViewSet(viewsets.ModelViewSet):
     queryset = Service.objects.all()
     serializer_class = ServiceSerializer
 
-@authentication_classes([]) 
+@authentication_classes([])
 class ScheduleViewSet(viewsets.ModelViewSet):
     queryset = Schedule.objects.all()
     serializer_class = ScheduleSerializer
@@ -157,17 +157,17 @@ class SchedulerDoctorViewSet(viewsets.ModelViewSet):
         serializer = SchedulerDoctorSerializer(schedule_doctor)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-@authentication_classes([]) 
+@authentication_classes([])
 class AppointmentViewSet(viewsets.ModelViewSet):
     queryset = Appointment.objects.all()
     serializer_class = AppointmentSerializer
 
-@authentication_classes([]) 
+@authentication_classes([])
 class ServiceDoctorViewSet(viewsets.ModelViewSet):
     queryset = ServiceDoctor.objects.all()
     serializer_class = ServiceDoctorSerializer
 
-@authentication_classes([]) 
+@authentication_classes([])
 class SpecialtyDoctorViewSet(viewsets.ModelViewSet):
     queryset = SpecialtyDoctor.objects.all()
     serializer_class = SpecialtyDoctorSerializer
@@ -191,7 +191,7 @@ class SpecialtyDoctorViewSet(viewsets.ModelViewSet):
         serializer = SpecialtyDoctorSerializer(specialty_doctor)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-@authentication_classes([]) 
+@authentication_classes([])
 class ToolViewSet(viewsets.ModelViewSet):
     queryset = Tool.objects.all()
     serializer_class = ToolSerializer
@@ -200,7 +200,7 @@ class ToolViewSet(viewsets.ModelViewSet):
 from django.conf import settings
 from rest_framework import generics
 
-    
+
 # class PasswordUpdateAPIView(generics.UpdateAPIView):
 #     queryset = Account.objects.all()
 #     serializer_class = UserPasswordUpdateSerializer
@@ -217,4 +217,3 @@ from rest_framework import generics
 #             return Response({'message': 'Password Changed'}, status=status.HTTP_200_OK)
 #         else:
 #             return Response({'message': 'Incorrect Old Password'}, status=status.HTTP_400_BAD_REQUEST)
-        

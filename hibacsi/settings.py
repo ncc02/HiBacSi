@@ -71,17 +71,17 @@ INSTALLED_APPS = [
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'authentication.backends.JWTAuthentication',
-    ], 
+    ],
     'DEFAULT_PAGINATION_CLASS': 'hibacsi.pagination.CustomLimitOffsetPagination',
     'PAGE_SIZE': 10
 }
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware', 
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     #  "whitenoise.middleware.WhiteNoiseMiddleware",
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',    
+    'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -158,14 +158,16 @@ JWT_SECRET_KEY = config('JWT_SECRET_KEY')
 
 
 
-##### 11/11 ###########
-# STATIC_URL = 'static/'
 import os
-STATIC_URL = '/static/'
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
-###### 11/11 ###########
+STATIC_URL = 'static/'
+STATICFILES_DIRS = [
+    # os.path.join(BASE_DIR, 'static'),
+]
 
-STATIC_ROOT = "/home/ncc02/hibacsi/static"
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+MEDIA_URL = 'media/'
+# STATIC_ROOT = "/home/ncc02/hibacsi/static"
 # or, eg,
 # STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
