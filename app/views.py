@@ -303,3 +303,42 @@ class SearchAllAPIView(APIView):
         }
 
         return Response(response_data, status=status.HTTP_200_OK)
+    
+
+@authentication_classes([])
+class SearchDoctorAPIView(APIView):
+    def get(self, request):
+        name = request.query_params.get('name', '')
+        address = request.query_params.get('address', '')
+        specialty = request.query_params.get('specialty', '')
+        service = request.query_params.get('service', '')
+
+        # Bỏ điều kiện lọc cho specialty nếu specialty không được cung cấp
+        specialty_filter = {} if not specialty else {'specialtydoctor__specialty__name__iexact': specialty}
+
+        # Bỏ điều kiện lọc cho service nếu service không được cung cấp
+        service_filter = {} if not service else {'servicedoctor__service__name__iexact': service}
+
+        doctors = Doctor.objects.filter(
+            name__icontains=name,
+            address__icontains=address,
+            **specialty_filter,
+            **service_filter,
+        )
+
+        # hospitals = Hospital.objects.filter(
+        #     name__icontains=name,
+        #     address__icontains=address,
+        #     specialtydoctor__specialty__name__iexact=specialty,
+        #     servicedoctor__service__name__iexact=service,
+        # )
+
+        doctor_serializer = DoctorSerializer(doctors, many=True)
+        # hospital_serializer = HospitalSerializer(hospitals, many=True)
+
+        response_data = {
+            'doctors': doctor_serializer.data,
+            # 'hospitals': hospital_serializer.data,
+        }
+
+        return Response(response_data, status=status.HTTP_200_OK)

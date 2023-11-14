@@ -27,5 +27,7 @@ urlpatterns = [
     # path('account_update/<int:pk>/', AccountUpdateAPIView.as_view(), name='account-update'),
     path('', include(router.urls)),
     path('search_all/', SearchAllAPIView.as_view()),
+    path('search_doctor/', SearchDoctorAPIView.as_view()),
+    
 
 ]
