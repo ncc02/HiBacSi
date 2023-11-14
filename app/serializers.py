@@ -4,7 +4,7 @@ from .models import *
 class AccountSerializer(serializers.ModelSerializer):
     class Meta:
         model = Account
-        fields = ['id', 'username', 'password', 'email', 'role']
+        fields = '__all__'
 
     # def validate(self, data):
     #     username = data.get('username')
