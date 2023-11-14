@@ -86,13 +86,34 @@ class AccountViewSet(viewsets.ModelViewSet):
             print_log(f"Anh moi dc luu tai Path: {instance.avatar.path}")
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    def create(self, request, *args, **kwargs):
+        return Response({'detail': 'Method not allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 @authentication_classes([])
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
-@authentication_classes([])
+    def get_queryset(self):
+        queryset = self.queryset
+        params = self.request.query_params
+
+        # Tạo một từ điển kwargs để xây dựng truy vấn động
+        filter_kwargs = {}
+
+        # Lặp qua tất cả các tham số truy vấn và thêm chúng vào từ điển kwargs
+        for param, value in params.items():
+            # Đảm bảo rằng param tồn tại trong model User nếu không thì báo lỗi
+            if param in [field.name for field in User._meta.get_fields()]:
+                filter_kwargs[param] = value
+        
+        # Xây dựng truy vấn động bằng cách sử dụng **kwargs
+        queryset = queryset.filter(**filter_kwargs)
+
+        return queryset
+
+@authentication_classes([]) 
 class AdminViewSet(viewsets.ModelViewSet):
     queryset = Admin.objects.all()
     serializer_class = AdminSerializer
@@ -102,7 +123,26 @@ class DoctorViewSet(viewsets.ModelViewSet):
     queryset = Doctor.objects.all()
     serializer_class = DoctorSerializer
 
-@authentication_classes([])
+    def get_queryset(self):
+        queryset = self.queryset
+        params = self.request.query_params
+
+        # Tạo một từ điển kwargs để xây dựng truy vấn động
+        filter_kwargs = {}
+
+        # Lặp qua tất cả các tham số truy vấn và thêm chúng vào từ điển kwargs
+        for param, value in params.items():
+            # Đảm bảo rằng param tồn tại trong model Doctor nếu không thì báo lỗi
+            if param in [field.name for field in Doctor._meta.get_fields()]:
+                filter_kwargs[param] = value
+        
+        # Xây dựng truy vấn động bằng cách sử dụng **kwargs
+        queryset = queryset.filter(**filter_kwargs)
+
+        return queryset
+
+
+@authentication_classes([]) 
 class HospitalViewSet(viewsets.ModelViewSet):
     queryset = Hospital.objects.all()
     serializer_class = HospitalSerializer
@@ -138,6 +178,15 @@ class ScheduleViewSet(viewsets.ModelViewSet):
     queryset = Schedule.objects.all()
     serializer_class = ScheduleSerializer
 
+    def create(self, request, *args, **kwargs):
+        data = request.data.copy()
+        days_of_week = data['days_of_week']
+        time_start = data['start']
+        time_end = data['end']
+        if (Schedule.objects.filter(days_of_week=days_of_week, start=time_start, end=time_end).exists()):
+            return Response({'detail': 'schedule is exist'}, status=status.HTTP_400_BAD_REQUEST)
+        return super().create(request, *args, **kwargs)
+
 @authentication_classes([])
 class SchedulerDoctorViewSet(viewsets.ModelViewSet):
     queryset = Scheduler_Doctor.objects.all()
@@ -145,17 +194,33 @@ class SchedulerDoctorViewSet(viewsets.ModelViewSet):
     # create
     def create(self, request, *args, **kwargs):
         data = request.data.copy()
-        print(data['id_doctor_id'])
-        data['id_doctor'] = Doctor.objects.get(id = data['id_doctor_id'])
-        data['id_schedule'] = Schedule.objects.get(id = data['id_schedule_id'])
+        print(data['doctor_id'])
+        data['id_doctor'] = Doctor.objects.get(id = data['doctor_id'])
+        data['id_schedule'] = Schedule.objects.get(id = data['schedule_id'])
         if (data['id_doctor'] == None or data['id_schedule'] == None):
             return Response({'detail': 'no find doctor or schedule'}, status=status.HTTP_400_BAD_REQUEST)
-        if (Scheduler_Doctor.objects.filter(id_doctor=data['id_doctor'], id_schedule=data['id_schedule']).exists()):
+        if (Scheduler_Doctor.objects.filter(doctor=data['id_doctor'], schedule=data['id_schedule']).exists()):
             return Response({'detail': 'schedule_doctor is exist'}, status=status.HTTP_400_BAD_REQUEST)
-        schedule_doctor = Scheduler_Doctor.objects.create(id_doctor=data['id_doctor'], id_schedule=data['id_schedule'])
+        schedule_doctor = Scheduler_Doctor.objects.create(doctor=data['id_doctor'], schedule=data['id_schedule'])
         schedule_doctor.save()
         serializer = SchedulerDoctorSerializer(schedule_doctor)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+    def get_queryset(self):
+        queryset = self.queryset
+        params = self.request.query_params
+        # Tạo một từ điển kwargs để xây dựng truy vấn động
+        filter_kwargs = {}
+        # Lặp qua tất cả các tham số truy vấn và thêm chúng vào từ điển kwargs
+        for param, value in params.items():
+            # Đảm bảo rằng param tồn tại trong model Scheduler_Doctor nếu không thì báo lỗi
+            abc = [field.name for field in Scheduler_Doctor._meta.get_fields()]
+            if param in [field.name for field in Scheduler_Doctor._meta.get_fields()]:
+                filter_kwargs[param] = value
+        # Xây dựng truy vấn động bằng cách sử dụng **kwargs
+        queryset = queryset.filter(**filter_kwargs)
+        
+        return queryset
 
 @authentication_classes([])
 class AppointmentViewSet(viewsets.ModelViewSet):
