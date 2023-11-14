@@ -26,4 +26,6 @@ urlpatterns = [
     #Account update ko can thiet vi da co CRUD
     # path('account_update/<int:pk>/', AccountUpdateAPIView.as_view(), name='account-update'),
     path('', include(router.urls)),
+    path('search_all/', SearchAllAPIView.as_view()),
+
 ]

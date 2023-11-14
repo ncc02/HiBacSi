@@ -39,6 +39,7 @@ class Admin(models.Model):
         return f'AdminInfo #{self.id}'
 
 class Specialty(models.Model):
+    icon = models.ImageField(upload_to='media/', null=True)
     name = models.CharField(max_length=255)
     describe = models.TextField()
 
@@ -83,7 +84,7 @@ class SpecialtyDoctor(models.Model):
         return f"Chuyên khoa {self.specialty} của Bác sĩ {self.doctor}"
 
 class Service(models.Model):
-
+    icon = models.ImageField(upload_to='media/', null=True)
     name = models.CharField(max_length=255)
     descripe = models.TextField()
 
@@ -124,6 +125,7 @@ class ServiceDoctor(models.Model):
 from django.db.models import JSONField
 
 class Tool(models.Model):
+    icon = models.ImageField(upload_to='media/', null=True)
     name = models.CharField(max_length=255)
     description = models.TextField()
     formula = models.CharField(max_length=255)

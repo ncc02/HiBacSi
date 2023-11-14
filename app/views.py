@@ -282,3 +282,24 @@ from rest_framework import generics
 #             return Response({'message': 'Password Changed'}, status=status.HTTP_200_OK)
 #         else:
 #             return Response({'message': 'Incorrect Old Password'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+@authentication_classes([])
+class SearchAllAPIView(APIView):
+    def get(self, request):
+        name = request.query_params.get('name', '')
+        address = request.query_params.get('address', '')
+
+        doctors = Doctor.objects.filter(name__icontains=name, address__icontains=address)
+        hospitals = Hospital.objects.filter(name__icontains=name, address__icontains=address)
+
+        doctor_serializer = DoctorSerializer(doctors, many=True)
+        hospital_serializer = HospitalSerializer(hospitals, many=True)
+
+        response_data = {
+            'doctors': doctor_serializer.data,
+            'hospitals': hospital_serializer.data,
+        }
+
+        return Response(response_data, status=status.HTTP_200_OK)

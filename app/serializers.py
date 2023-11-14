@@ -46,18 +46,26 @@ class SpecialtyDoctorSerializer(serializers.ModelSerializer):
     model = SpecialtyDoctor
     fields = '__all__' 
 
-class DoctorSerializer(serializers.ModelSerializer):
-    account = AccountSerializer()
-    hospital = HospitalSerializer()
-    specialties = SpecialtyDoctorSerializer(many=True, source='specialtydoctor_set')
-    class Meta:
-        model = Doctor
-        fields = '__all__'
-
 class ServiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Service
         fields = '__all__'
+
+class ServiceDoctorSerializer(serializers.ModelSerializer):
+    service = ServiceSerializer()
+    class Meta:
+        model = ServiceDoctor
+        fields = '__all__'
+    
+class DoctorSerializer(serializers.ModelSerializer):
+    account = AccountSerializer()
+    hospital = HospitalSerializer()
+    specialties = SpecialtyDoctorSerializer(many=True, source='specialtydoctor_set')
+    services = ServiceDoctorSerializer(many=True, source='servicedoctor_set')
+    class Meta:
+        model = Doctor
+        fields = '__all__'
+
 
 class ScheduleSerializer(serializers.ModelSerializer):
     class Meta:
@@ -76,11 +84,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class ServiceDoctorSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = '__all__'
-    
+
 
 class ToolSerializer(serializers.ModelSerializer):
     class Meta:
