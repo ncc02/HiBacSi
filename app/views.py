@@ -293,13 +293,32 @@ class SearchAllAPIView(APIView):
 
         doctors = Doctor.objects.filter(name__icontains=name, address__icontains=address)
         hospitals = Hospital.objects.filter(name__icontains=name, address__icontains=address)
+        
+        specialtys = Specialty.objects.filter(name__icontains=name)
+        services = Service.objects.filter(name__icontains=name)
+        
 
         doctor_serializer = DoctorSerializer(doctors, many=True)
         hospital_serializer = HospitalSerializer(hospitals, many=True)
+        specialty_serializer = SpecialtySerializer(specialtys, many=True)
+        services_serializer = ServiceSerializer(services, many=True)
+        
+        # Đếm số lượng đối tượng trong mỗi danh sách
+        count_doctors = len(doctor_serializer.data)
+        count_hospitals = len(hospital_serializer.data)
+        count_specialtys = len(specialty_serializer.data)
+        count_services = len(services_serializer.data)
 
         response_data = {
+            'count_doctors': count_doctors,
+            'count_hospitals': count_hospitals,
+            'count_specialtys': count_specialtys,
+            'count_services': count_services,
             'doctors': doctor_serializer.data,
             'hospitals': hospital_serializer.data,
+            'specialtys': specialty_serializer.data,
+            'services': services_serializer.data,
+            
         }
 
         return Response(response_data, status=status.HTTP_200_OK)
@@ -332,11 +351,12 @@ class SearchDoctorAPIView(APIView):
         #     specialtydoctor__specialty__name__iexact=specialty,
         #     servicedoctor__service__name__iexact=service,
         # )
-
         doctor_serializer = DoctorSerializer(doctors, many=True)
         # hospital_serializer = HospitalSerializer(hospitals, many=True)
-
+        count_doctors = len(doctor_serializer.data)
+        
         response_data = {
+            'count_doctors': count_doctors,
             'doctors': doctor_serializer.data,
             # 'hospitals': hospital_serializer.data,
         }
