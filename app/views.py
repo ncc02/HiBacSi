@@ -335,10 +335,16 @@ from rest_framework import generics
 #         else:
 #             return Response({'message': 'Incorrect Old Password'}, status=status.HTTP_400_BAD_REQUEST)
 
+from rest_framework.pagination import PageNumberPagination
+class CustomPagination(PageNumberPagination):
+    page_size = 6
 
+class CustomPagination2(PageNumberPagination):
+    page_size = 2
 
 @authentication_classes([])
-class SearchAllAPIView(APIView):
+class SearchAllAPIView(APIView):   
+
     def get(self, request):
         name = request.query_params.get('name', '')
         address = request.query_params.get('address', '')
@@ -350,22 +356,36 @@ class SearchAllAPIView(APIView):
         services = Service.objects.filter(name__icontains=name)
         
 
-        doctor_serializer = DoctorSerializer(doctors, many=True)
-        hospital_serializer = HospitalSerializer(hospitals, many=True)
-        specialty_serializer = SpecialtySerializer(specialtys, many=True)
-        services_serializer = ServiceSerializer(services, many=True)
+        paginator = CustomPagination2()
+        paginated_doctors = paginator.paginate_queryset(doctors, request)
+        doctor_serializer = DoctorSerializer(paginated_doctors, many=True)
         
-        # Đếm số lượng đối tượng trong mỗi danh sách
-        count_doctors = len(doctor_serializer.data)
-        count_hospitals = len(hospital_serializer.data)
-        count_specialtys = len(specialty_serializer.data)
-        count_services = len(services_serializer.data)
+        paginated_hospitals = paginator.paginate_queryset(hospitals, request)
+        hospital_serializer = HospitalSerializer(paginated_hospitals, many=True)
+        
+        paginated_specialtys = paginator.paginate_queryset(specialtys, request)
+        specialty_serializer = SpecialtySerializer(paginated_specialtys, many=True)
+        
+        paginated_services = paginator.paginate_queryset(services, request)
+        services_serializer = ServiceSerializer(paginated_services, many=True)
+        
+
+        # doctor_serializer = DoctorSerializer(doctors, many=True)
+        # hospital_serializer = HospitalSerializer(hospitals, many=True)
+        # specialty_serializer = SpecialtySerializer(specialtys, many=True)
+        # services_serializer = ServiceSerializer(services, many=True)
+        
+        # # Đếm số lượng đối tượng trong mỗi danh sách
+        # count_doctors = len(doctor_serializer.data)
+        # count_hospitals = len(hospital_serializer.data)
+        # count_specialtys = len(specialty_serializer.data)
+        # count_services = len(services_serializer.data)
 
         response_data = {
-            'count_doctors': count_doctors,
-            'count_hospitals': count_hospitals,
-            'count_specialtys': count_specialtys,
-            'count_services': count_services,
+            # 'count_doctors': count_doctors,
+            # 'count_hospitals': count_hospitals,
+            # 'count_specialtys': count_specialtys,
+            # 'count_services': count_services,
             'doctors': doctor_serializer.data,
             'hospitals': hospital_serializer.data,
             'specialtys': specialty_serializer.data,
@@ -373,12 +393,13 @@ class SearchAllAPIView(APIView):
             
         }
 
-        return Response(response_data, status=status.HTTP_200_OK)
-    
+        return paginator.get_paginated_response(response_data)
+
 
 @authentication_classes([])
 class SearchDoctorAPIView(APIView):
-    def get(self, request):
+    
+    def get(self, request): 
         name = request.query_params.get('name', '')
         address = request.query_params.get('address', '')
         specialty = request.query_params.get('specialty', '')
@@ -403,14 +424,17 @@ class SearchDoctorAPIView(APIView):
         #     specialtydoctor__specialty__name__iexact=specialty,
         #     servicedoctor__service__name__iexact=service,
         # )
-        doctor_serializer = DoctorSerializer(doctors, many=True)
+        paginator = CustomPagination()
+        paginated_doctors = paginator.paginate_queryset(doctors, request)
+        doctor_serializer = DoctorSerializer(paginated_doctors, many=True)
         # hospital_serializer = HospitalSerializer(hospitals, many=True)
-        count_doctors = len(doctor_serializer.data)
+        # count_doctors = len(doctor_serializer.data)
         
         response_data = {
-            'count_doctors': count_doctors,
             'doctors': doctor_serializer.data,
             # 'hospitals': hospital_serializer.data,
         }
-
-        return Response(response_data, status=status.HTTP_200_OK)
+        return paginator.get_paginated_response(response_data)
+        
+        # return Response(response_data, status=status.HTTP_200_OK)
+    

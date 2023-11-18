@@ -73,7 +73,7 @@ REST_FRAMEWORK = {
         'authentication.backends.JWTAuthentication',
     ],
     'DEFAULT_PAGINATION_CLASS': 'hibacsi.pagination.CustomLimitOffsetPagination',
-    'PAGE_SIZE': 6
+    'PAGE_SIZE': 10
 }
 
 MIDDLEWARE = [
