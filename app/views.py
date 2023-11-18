@@ -6,6 +6,7 @@ from .models import Account
 from app.permissions import IsAdminPermission, IsDoctorPermission, IsHospitalPermission, IsUserPermission
 import app.utils as utils
 from rest_framework.decorators import authentication_classes, permission_classes
+from rest_framework.generics import GenericAPIView
 # from django.conf import settings
 # import jwt
 import app.utils as utils
@@ -201,7 +202,7 @@ class SchedulerDoctorViewSet(viewsets.ModelViewSet):
             return Response({'detail': 'no find doctor or schedule'}, status=status.HTTP_400_BAD_REQUEST)
         if (Scheduler_Doctor.objects.filter(doctor=data['id_doctor'], schedule=data['id_schedule']).exists()):
             return Response({'detail': 'schedule_doctor is exist'}, status=status.HTTP_400_BAD_REQUEST)
-        schedule_doctor = Scheduler_Doctor.objects.create(doctor=data['id_doctor'], schedule=data['id_schedule'])
+        schedule_doctor = Scheduler_Doctor.objects.create(doctor=data['id_doctor'], id_schedule=data['id_schedule'])
         schedule_doctor.save()
         serializer = SchedulerDoctorSerializer(schedule_doctor)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -214,13 +215,49 @@ class SchedulerDoctorViewSet(viewsets.ModelViewSet):
         # Lặp qua tất cả các tham số truy vấn và thêm chúng vào từ điển kwargs
         for param, value in params.items():
             # Đảm bảo rằng param tồn tại trong model Scheduler_Doctor nếu không thì báo lỗi
-            abc = [field.name for field in Scheduler_Doctor._meta.get_fields()]
             if param in [field.name for field in Scheduler_Doctor._meta.get_fields()]:
                 filter_kwargs[param] = value
         # Xây dựng truy vấn động bằng cách sử dụng **kwargs
         queryset = queryset.filter(**filter_kwargs)
         
         return queryset
+    
+#create GetSchedulerDoctor
+@authentication_classes([])
+class GetSchedulerDoctor(GenericAPIView):
+    serializer_class = SchedulerDoctorSerializer
+    def get(self, request, *args, **kwargs):
+        print("get")
+        # get doctor
+        doctor_id = request.query_params.get('doctor')
+        print('doctor_id: ', doctor_id)
+        schedule_doctor = Scheduler_Doctor.objects.filter(doctor=doctor_id)
+        # chia schedule_doctor thanh 3 list theo morning, afternoon, evening
+        print(2)
+        morning = []
+        afternoon = []
+        evening = []
+        for i in schedule_doctor:
+            if i.schedule.end.hour < 12:
+                morning.append(i.schedule)
+            if i.schedule.start.hour >= 12 and i.schedule.end.hour < 18:
+                afternoon.append(i.schedule)
+            if i.schedule.start.hour >= 18:
+                evening.append(i.schedule)
+        print(morning)
+        print(afternoon)
+        print(evening)
+        serializer_data = {
+            'morning': ScheduleSerializer(morning, many=True).data,
+            'afternoon': ScheduleSerializer(afternoon, many=True).data,
+            'evening': ScheduleSerializer(evening, many=True).data,
+        }
+        serializer = GetSchedulerSerializer(serializer_data)
+        print(serializer.data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+        # print(3)
+        # serializer = GetSchedulerSerializer({'morning': morning, 'afternoon': afternoon, 'evening': evening})
+        # return Response(serializer.data, status=status.HTTP_200_OK)
 
 @authentication_classes([])
 class AppointmentViewSet(viewsets.ModelViewSet):
@@ -255,6 +292,21 @@ class SpecialtyDoctorViewSet(viewsets.ModelViewSet):
         specialty_doctor.save()
         serializer = SpecialtyDoctorSerializer(specialty_doctor)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+    def get_queryset(self):
+        queryset = self.queryset
+        params = self.request.query_params
+        # Tạo một từ điển kwargs để xây dựng truy vấn động
+        filter_kwargs = {}
+        # Lặp qua tất cả các tham số truy vấn và thêm chúng vào từ điển kwargs
+        for param, value in params.items():
+            # Đảm bảo rằng param tồn tại trong model SpecialtyDoctor nếu không thì báo lỗi
+            if param in [field.name for field in SpecialtyDoctor._meta.get_fields()]:
+                filter_kwargs[param] = value
+        # Xây dựng truy vấn động bằng cách sử dụng **kwargs 
+        queryset = queryset.filter(**filter_kwargs)
+
+        return queryset
 
 @authentication_classes([])
 class ToolViewSet(viewsets.ModelViewSet):

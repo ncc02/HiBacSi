@@ -28,6 +28,6 @@ urlpatterns = [
     path('', include(router.urls)),
     path('search_all/', SearchAllAPIView.as_view()),
     path('search_doctor/', SearchDoctorAPIView.as_view()),
-    
+    path('schedulerdoctor/', GetSchedulerDoctor.as_view(), name='getscheduler'),
 
 ]

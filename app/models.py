@@ -110,7 +110,7 @@ class Appointment(models.Model):
     schedule_doctor = models.ForeignKey(Scheduler_Doctor, on_delete=models.CASCADE, default=0)  # Khoá ngoại liên kết đến Scheduler_Doctor
     date = models.DateField()
     time = models.TimeField(null=True)
-
+    status = models.IntegerField(default=0) # 0: chưa xác nhận, 1: đã xác nhận, 2: đã hủy
     def __str__(self):
         return f"Lịch hẹn ngày {self.date} vào {self.time}"
 
