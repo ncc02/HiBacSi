@@ -65,10 +65,16 @@ class ScheduleSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class SchedulerDoctorSerializer(serializers.ModelSerializer):
+    schedule = ScheduleSerializer()
     class Meta:
         model = Scheduler_Doctor
         # all except id_doctor and id_schedule
-        fields = ['id', 'doctor_id', 'schedule_id']
+        fields = ['id', 'doctor_id', 'schedule_id', 'schedule']
+
+class GetSchedulerSerializer(serializers.Serializer):
+    morning = ScheduleSerializer(many=True)
+    afternoon = ScheduleSerializer(many=True)
+    evening = ScheduleSerializer(many=True)
 
 class AppointmentSerializer(serializers.ModelSerializer):
     class Meta:

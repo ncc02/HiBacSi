@@ -23,6 +23,7 @@ urlpatterns = [
     path('auth/', include('authentication.urls')),
     path('user/', include('user.urls')),
     path('booking/', include('booking.urls')),
+    path('schedulerdoctor/', GetSchedulerDoctor.as_view(), name='getscheduler'),
     #Account update ko can thiet vi da co CRUD
     # path('account_update/<int:pk>/', AccountUpdateAPIView.as_view(), name='account-update'),
     path('', include(router.urls)),
