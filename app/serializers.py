@@ -90,8 +90,6 @@ class AppointmentSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-
-
 class ToolSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tool
@@ -125,3 +123,21 @@ class BookingSerializer(serializers.ModelSerializer):
     id_schedule = serializers.IntegerField()
     date = serializers.DateField()
     time = serializers.TimeField()
+
+class BlogSerializer(serializers.ModelSerializer ):
+    class Meta:
+        model = Blog
+        fields = '__all__'
+
+class CategorySerializer(serializers.ModelSerializer ):
+    class Meta:
+        model = Category
+        fields = '__all__'
+
+class UserPasswordUpdateSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=True)
+    oldpassword = serializers.CharField(write_only=True, required=True)
+
+    class Meta:
+        model = User
+        fields = ('password', 'oldpassword')

@@ -133,3 +133,22 @@ class Tool(models.Model):
 
     def __str__(self):
         return self.name
+
+class Category(models.Model):
+    icon = models.ImageField(upload_to='media/', null=True)
+    name = models.CharField(max_length=255)
+    describe = models.TextField()
+
+    def __str__(self):
+        return self.name    
+
+class Blog(models.Model):
+    id_doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, related_name='blogs')
+    id_category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='blogs')
+    title = models.CharField(max_length=255)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return str(self.id)
+

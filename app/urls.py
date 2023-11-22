@@ -17,6 +17,9 @@ router.register(r'schedulerdoctor', SchedulerDoctorViewSet)
 router.register(r'appointments', AppointmentViewSet)
 router.register(r'servicedoctors', ServiceDoctorViewSet)
 router.register(r'tools', ToolViewSet)
+router.register(r'blogs', BlogViewSet)
+router.register(r'categories', CategoryViewSet)
+
 
 urlpatterns = [
     path('token/', include('mytoken.urls')),
@@ -29,5 +32,7 @@ urlpatterns = [
     path('search_all/', SearchAllAPIView.as_view()),
     path('search_doctor/', SearchDoctorAPIView.as_view()),
     path('schedulerdoctor/', GetSchedulerDoctor.as_view(), name='getscheduler'),
+    path('search_blog/', BlogSearchView.as_view(), name='search_blog'),
+    path('accounts/<int:pk>/change_password', UserPasswordUpdateAPIView.as_view(), name='user-change-password'),
 
 ]

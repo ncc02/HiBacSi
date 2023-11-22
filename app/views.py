@@ -120,6 +120,16 @@ class AdminViewSet(viewsets.ModelViewSet):
     serializer_class = AdminSerializer
 
 @authentication_classes([])
+class BlogViewSet(viewsets.ModelViewSet):
+    queryset = Blog.objects.all()
+    serializer_class = BlogSerializer
+
+@authentication_classes([])
+class CategoryViewSet(viewsets.ModelViewSet):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+
+@authentication_classes([])
 class DoctorViewSet(viewsets.ModelViewSet):
     queryset = Doctor.objects.all()
     serializer_class = DoctorSerializer
@@ -318,22 +328,6 @@ from django.conf import settings
 from rest_framework import generics
 
 
-# class PasswordUpdateAPIView(generics.UpdateAPIView):
-#     queryset = Account.objects.all()
-#     serializer_class = UserPasswordUpdateSerializer
-#     #permission_classes = [permissions.IsAuthenticated]
-
-#     def patch(self, request, *args, **kwargs):
-#         instance = self.get_object()
-#         oldpassword = request.data.get('oldpassword')
-#         newpassword = make_password(request.data.get('password'))
-#         if check_password(oldpassword, instance.password):
-#             instance.password = newpassword
-#             instance.save(update_fields=['password'])
-#             serializer = self.get_serializer(instance)
-#             return Response({'message': 'Password Changed'}, status=status.HTTP_200_OK)
-#         else:
-#             return Response({'message': 'Incorrect Old Password'}, status=status.HTTP_400_BAD_REQUEST)
 
 from rest_framework.pagination import PageNumberPagination
 class CustomPagination(PageNumberPagination):
@@ -356,6 +350,18 @@ class SearchAllAPIView(APIView):
         services = Service.objects.filter(name__icontains=name)
         
 
+        doctor_serializer = DoctorSerializer(doctors, many=True)
+        hospital_serializer = HospitalSerializer(hospitals, many=True)
+        specialty_serializer = SpecialtySerializer(specialtys, many=True)
+        services_serializer = ServiceSerializer(services, many=True)
+        
+        # Đếm số lượng đối tượng trong mỗi danh sách
+        count_doctors = len(doctor_serializer.data)
+        count_hospitals = len(hospital_serializer.data)
+        count_specialtys = len(specialty_serializer.data)
+        count_services = len(services_serializer.data)
+
+
         paginator = CustomPagination2()
         paginated_doctors = paginator.paginate_queryset(doctors, request)
         doctor_serializer = DoctorSerializer(paginated_doctors, many=True)
@@ -370,22 +376,12 @@ class SearchAllAPIView(APIView):
         services_serializer = ServiceSerializer(paginated_services, many=True)
         
 
-        # doctor_serializer = DoctorSerializer(doctors, many=True)
-        # hospital_serializer = HospitalSerializer(hospitals, many=True)
-        # specialty_serializer = SpecialtySerializer(specialtys, many=True)
-        # services_serializer = ServiceSerializer(services, many=True)
-        
-        # # Đếm số lượng đối tượng trong mỗi danh sách
-        # count_doctors = len(doctor_serializer.data)
-        # count_hospitals = len(hospital_serializer.data)
-        # count_specialtys = len(specialty_serializer.data)
-        # count_services = len(services_serializer.data)
 
         response_data = {
-            # 'count_doctors': count_doctors,
-            # 'count_hospitals': count_hospitals,
-            # 'count_specialtys': count_specialtys,
-            # 'count_services': count_services,
+            'count_doctors': count_doctors,
+            'count_hospitals': count_hospitals,
+            'count_specialtys': count_specialtys,
+            'count_services': count_services,
             'doctors': doctor_serializer.data,
             'hospitals': hospital_serializer.data,
             'specialtys': specialty_serializer.data,
@@ -418,23 +414,77 @@ class SearchDoctorAPIView(APIView):
             **service_filter,
         )
 
-        # hospitals = Hospital.objects.filter(
-        #     name__icontains=name,
-        #     address__icontains=address,
+        doctor_serializer = DoctorSerializer(doctors, many=True)
+        count_doctors = len(doctor_serializer.data)
+        
+        hospitals = Hospital.objects.filter(
+            name__icontains=name,
+            address__icontains=address,
         #     specialtydoctor__specialty__name__iexact=specialty,
         #     servicedoctor__service__name__iexact=service,
-        # )
+        )
+        hospital_serializer = HospitalSerializer(hospitals, many=True)
+        count_hospitals = len(hospital_serializer.data)
+
         paginator = CustomPagination()
+
         paginated_doctors = paginator.paginate_queryset(doctors, request)
         doctor_serializer = DoctorSerializer(paginated_doctors, many=True)
-        # hospital_serializer = HospitalSerializer(hospitals, many=True)
-        # count_doctors = len(doctor_serializer.data)
-        
+
+        paginated_hospitals = paginator.paginate_queryset(hospitals, request)
+        hospital_serializer = HospitalSerializer(paginated_hospitals, many=True)
+
+
         response_data = {
+            'total_doctors': count_doctors,
+            'total_hospitals': count_hospitals,    
             'doctors': doctor_serializer.data,
-            # 'hospitals': hospital_serializer.data,
+            'hospitals': hospital_serializer.data,
         }
         return paginator.get_paginated_response(response_data)
         
         # return Response(response_data, status=status.HTTP_200_OK)
-    
+
+
+@authentication_classes([])
+class BlogSearchView(generics.ListAPIView):
+    serializer_class = BlogSerializer
+
+    def get_queryset(self):
+        name = self.request.query_params.get('name', None)
+        id_category = self.request.query_params.get('id_category', None)
+        queryset = Blog.objects.all()
+
+        if name:
+            queryset = queryset.filter(title__icontains=name)
+
+        if id_category:
+            queryset = queryset.filter(id_category=id_category)
+
+        return queryset
+
+import hashlib
+def hash_password(password):
+    salt = "random string to make the hash more secure"
+    salted_password = password + salt
+    hashed_password = hashlib.sha256(salted_password.encode('utf-8')).hexdigest()
+    return hashed_password
+
+
+@authentication_classes([])
+class UserPasswordUpdateAPIView(generics.UpdateAPIView): #Ten User nhung that ra la Account
+    queryset = Account.objects.all()
+    serializer_class = UserPasswordUpdateSerializer
+    #permission_classes = [permissions.IsAuthenticated]
+
+    def patch(self, request, *args, **kwargs):
+        instance = self.get_object()
+        oldpassword = request.data.get('oldpassword')
+        newpassword = request.data.get('newpassword')
+        if hash_password(oldpassword) == instance.password:
+            instance.password = hash_password(newpassword)
+            instance.save(update_fields=['password'])
+            
+            return Response({'message': 'Password Changed', 'newpassword_hash':str(instance.password)}, status=status.HTTP_200_OK)
+        else:
+            return Response({'message': 'Incorrect Old Password', 'oldpassword':str(oldpassword),'hash_oldpassword':str(hash_password(oldpassword)),'instance_passwrod': str(instance.password)}, status=status.HTTP_400_BAD_REQUEST)
