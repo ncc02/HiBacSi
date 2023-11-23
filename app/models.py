@@ -83,6 +83,8 @@ class SpecialtyDoctor(models.Model):
     def __str__(self):
         return f"Chuyên khoa {self.specialty} của Bác sĩ {self.doctor}"
 
+
+
 class Service(models.Model):
     icon = models.ImageField(upload_to='media/', null=True)
     name = models.CharField(max_length=255)
@@ -147,7 +149,7 @@ class Blog(models.Model):
     id_category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='blogs')
     title = models.CharField(max_length=255)
     content = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateField(auto_now_add=True)
 
     def __str__(self):
         return str(self.id)
