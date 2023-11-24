@@ -130,15 +130,19 @@ class BookingSerializer(serializers.ModelSerializer):
     date = serializers.DateField()
     time = serializers.TimeField()
 
-class BlogSerializer(serializers.ModelSerializer ):
-    class Meta:
-        model = Blog
-        fields = '__all__'
-
 class CategorySerializer(serializers.ModelSerializer ):
     class Meta:
         model = Category
         fields = '__all__'
+
+class BlogSerializer(serializers.ModelSerializer ):
+    id_doctor = DoctorSerializer()  # Sử dụng DoctorSerializer để bao gồm thông tin về bác sĩ
+    id_category = CategorySerializer()
+    class Meta:
+        model = Blog
+        fields = '__all__'
+
+
 
 class UserPasswordUpdateSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True)

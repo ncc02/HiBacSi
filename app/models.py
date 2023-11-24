@@ -38,13 +38,7 @@ class Admin(models.Model):
     def __str__(self):
         return f'AdminInfo #{self.id}'
 
-class Specialty(models.Model):
-    icon = models.ImageField(upload_to='media/', null=True)
-    name = models.CharField(max_length=255)
-    describe = models.TextField()
 
-    def __str__(self):
-        return self.name
 
 class Hospital(models.Model):
 
@@ -55,6 +49,14 @@ class Hospital(models.Model):
     address_map = models.CharField(max_length=255, null=True, blank=True)
     info = models.TextField(default='')
 
+
+    def __str__(self):
+        return self.name
+
+class Specialty(models.Model):
+    icon = models.ImageField(upload_to='media/', null=True)
+    name = models.CharField(max_length=255)
+    describe = models.TextField()
 
     def __str__(self):
         return self.name
@@ -94,6 +96,14 @@ class Service(models.Model):
     def __str__(self):
         return self.name
 
+
+class ServiceDoctor(models.Model):
+    service = models.ForeignKey(Service, on_delete=models.CASCADE)
+    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"Dịch vụ {self.service} của Bác sĩ {self.doctor}"
+
 class Schedule(models.Model):
     days_of_week = models.IntegerField() # 1:CN, 2:T2, 3:T3, 4:T4, 5:T5, 6:T6, 7:T7
     start = models.TimeField()
@@ -118,12 +128,6 @@ class Appointment(models.Model):
     def __str__(self):
         return f"Lịch hẹn ngày {self.date} vào {self.time}"
 
-class ServiceDoctor(models.Model):
-    service = models.ForeignKey(Service, on_delete=models.CASCADE)
-    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE)
-
-    def __str__(self):
-        return f"Dịch vụ {self.service} của Bác sĩ {self.doctor}"
 
 
 from django.db.models import JSONField

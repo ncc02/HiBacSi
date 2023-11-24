@@ -124,6 +124,25 @@ class BlogViewSet(viewsets.ModelViewSet):
     queryset = Blog.objects.all()
     serializer_class = BlogSerializer
 
+    # def list(self, request, *args, **kwargs): -> DEO CAN
+    #     response = super().list(request, *args, **kwargs)
+
+    #     # Serialize and include Category and Doctor data in the response
+    #     serialized_categories = CategorySerializer(
+    #         set(blog.id_category for blog in self.queryset),
+    #         many=True
+    #     ).data
+
+    #     serialized_doctors = DoctorSerializer(
+    #         set(blog.id_doctor for blog in self.queryset),
+    #         many=True
+    #     ).data
+
+    #     response.data['categories'] = serialized_categories
+    #     response.data['doctors'] = serialized_doctors
+
+    #     return response
+
 @authentication_classes([])
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
@@ -362,8 +381,14 @@ class SearchAllAPIView(APIView):
         doctors = Doctor.objects.filter(name__icontains=name, address__icontains=address)
         hospitals = Hospital.objects.filter(name__icontains=name, address__icontains=address)
         
-        specialtys = Specialty.objects.filter(name__icontains=name)
-        services = Service.objects.filter(name__icontains=name)
+        doctors_address = Doctor.objects.filter(address__icontains=address)
+
+        # Get the IDs of doctors with the specified address
+        doctor_ids_with_address = doctors_address.values_list('id', flat=True)
+
+        # Filter specialties and services based on doctors with the specified address
+        specialtys = Specialty.objects.filter(doctor__id__in=doctor_ids_with_address, name__icontains=name).distinct()
+        services = Service.objects.filter(doctor__id__in=doctor_ids_with_address, name__icontains=name).distinct()
         
 
         doctor_serializer = DoctorSerializer(doctors, many=True)
@@ -416,28 +441,42 @@ class SearchDoctorAPIView(APIView):
         address = request.query_params.get('address', '')
         specialty = request.query_params.get('specialty', '')
         service = request.query_params.get('service', '')
+        hospital = request.query_params.get('hospital', '')
 
         # Bỏ điều kiện lọc cho specialty nếu specialty không được cung cấp
-        specialty_filter = {} if not specialty else {'specialtydoctor__specialty__name__iexact': specialty}
+        specialty_filter = {} if not specialty else {'specialtydoctor__specialty__id': specialty}
 
         # Bỏ điều kiện lọc cho service nếu service không được cung cấp
-        service_filter = {} if not service else {'servicedoctor__service__name__iexact': service}
+        service_filter = {} if not service else {'servicedoctor__service__id': service}
 
-        doctors = Doctor.objects.filter(
-            name__icontains=name,
-            address__icontains=address,
+        # Bỏ điều kiện lọc cho hospital nếu hospital không được cung cấp
+        hospital_filter = {} if not hospital else {'hospital__id': hospital}
+
+        # Combine all filters
+        filters = {
+            'name__icontains': name,
+            'address__icontains': address,
             **specialty_filter,
             **service_filter,
-        )
+            **hospital_filter,
+        }
+
+        doctors = Doctor.objects.filter(**filters)
 
         doctor_serializer = DoctorSerializer(doctors, many=True)
         count_doctors = len(doctor_serializer.data)
         
+        doctors_ss = Doctor.objects.filter(        
+            **specialty_filter,
+            **service_filter,
+        )
+
+        doctor_specialty_ids = doctors_ss.values_list('hospital__id', flat=True).distinct()
+
         hospitals = Hospital.objects.filter(
             name__icontains=name,
             address__icontains=address,
-        #     specialtydoctor__specialty__name__iexact=specialty,
-        #     servicedoctor__service__name__iexact=service,
+            id__in=doctor_specialty_ids,
         )
         hospital_serializer = HospitalSerializer(hospitals, many=True)
         count_hospitals = len(hospital_serializer.data)
@@ -469,7 +508,11 @@ class BlogSearchView(generics.ListAPIView):
     def get_queryset(self):
         name = self.request.query_params.get('name', None)
         id_category = self.request.query_params.get('id_category', None)
+
         queryset = Blog.objects.all()
+
+        # Sử dụng select_related để trả về thông tin của bác sĩ và danh mục cùng với blog
+        queryset = queryset.select_related('id_doctor', 'id_category')
 
         if name:
             queryset = queryset.filter(title__icontains=name)
@@ -478,6 +521,8 @@ class BlogSearchView(generics.ListAPIView):
             queryset = queryset.filter(id_category=id_category)
 
         return queryset
+    
+
 
 import hashlib
 def hash_password(password):
