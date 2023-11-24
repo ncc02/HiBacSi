@@ -274,6 +274,22 @@ class AppointmentViewSet(viewsets.ModelViewSet):
     queryset = Appointment.objects.all()
     serializer_class = AppointmentSerializer
 
+     # get queryset by user_id
+    def get_queryset(self):
+        print(1)
+        queryset = self.queryset
+        params = self.request.query_params
+        # Tạo một từ điển kwargs để xây dựng truy vấn động
+        filter_kwargs = {}
+        # Lặp qua tất cả các tham số truy vấn và thêm chúng vào từ điển kwargs
+        for param, value in params.items():
+            # Đảm bảo rằng param tồn tại trong model Appointment nếu không thì báo lỗi
+            if param in [field.name for field in Appointment._meta.get_fields()]:
+                filter_kwargs[param] = value
+        # Xây dựng truy vấn động bằng cách sử dụng **kwargs
+        queryset = queryset.filter(**filter_kwargs)
+        return queryset
+
 @authentication_classes([])
 class ServiceDoctorViewSet(viewsets.ModelViewSet):
     queryset = ServiceDoctor.objects.all()
@@ -488,3 +504,95 @@ class UserPasswordUpdateAPIView(generics.UpdateAPIView): #Ten User nhung that ra
             return Response({'message': 'Password Changed', 'newpassword_hash':str(instance.password)}, status=status.HTTP_200_OK)
         else:
             return Response({'message': 'Incorrect Old Password', 'oldpassword':str(oldpassword),'hash_oldpassword':str(hash_password(oldpassword)),'instance_passwrod': str(instance.password)}, status=status.HTTP_400_BAD_REQUEST)
+        
+from hibacsi.pagination import CustomLimitOffsetPagination
+from authentication.backends import JWTAuthentication
+
+# create GetAppointment
+@permission_classes([IsUserPermission])
+class GetAppointment(GenericAPIView):
+    serializer_class = AppointmentSerializer
+    def get(self, request, *args, **kwargs):
+        print(1)
+        # get user by account
+        user = User.objects.get(account=request.account)
+        # get appointment by user
+        appointment = Appointment.objects.filter(user=user)
+        # chia appointment thanh 3 list là appointment sắp đến, appointment chưa xác nhận, appointment đã xác nhận
+        appointment_coming = []
+        appointment_not_confirm = []
+        appointment_confirmed = []
+        for i in appointment:
+            if i.date > datetime.date.today():
+                appointment_coming.append(i)
+            if i.status == 0:
+                appointment_not_confirm.append(i)
+            if i.status == 1:
+                appointment_confirmed.append(i)
+        print(appointment_coming)
+        print(appointment_not_confirm)
+        print(appointment_confirmed)
+        serializer_data = {
+            'coming': AppointmentSerializer(appointment_coming, many=True).data,
+            'not_confirm': AppointmentSerializer(appointment_not_confirm, many=True).data,
+            'confirmed': AppointmentSerializer(appointment_confirmed, many=True).data,
+        }
+        print(2)
+        serializer = GetAppointmentSerializer(serializer_data)
+        print(3)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+@authentication_classes([])
+# create RatingAppointment
+@permission_classes([IsUserPermission])
+class RatingAppointment(GenericAPIView):
+    serializer_class = AppointmentSerializer
+    def post(self, request, *args, **kwargs):
+        # kiểm tra user có phải là user của appointment   
+        user = User.objects.get(account=request.account)
+        appointment = Appointment.objects.get(id=kwargs['pk'])
+        if (user != appointment.user):
+            return Response({'detail': 'user is not user of appointment'}, status=status.HTTP_400_BAD_REQUEST)
+        # update rating cho bác sĩ
+        if (appointment.rating == 0):
+            doctor = appointment.schedule_doctor.doctor
+            doctor.num_of_rating += 1
+            try:
+                rating_value = float(request.data['rating'])
+            except KeyError:
+                return Response({'detail': 'rating is not exist'}, status=status.HTTP_400_BAD_REQUEST)
+            except ValueError:
+                rating_value = 0.0
+            doctor.rating = (doctor.rating * (doctor.num_of_rating - 1) + rating_value) / doctor.num_of_rating
+            doctor.save()
+        else:
+            return Response({'detail': 'appointment has been rated'}, status=status.HTTP_400_BAD_REQUEST)
+        # update rating cho appointment
+        appointment.rating = rating_value
+        appointment.save()
+        serializer = AppointmentSerializer(appointment)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+# create StatusAppointment 
+@permission_classes([IsUserPermission | IsDoctorPermission])
+class StatusAppointment(GenericAPIView):
+    serializer_class = AppointmentSerializer
+    def post(self, request, *args, **kwargs):
+        try:
+            doctor = Doctor.objects.get(account=request.account)
+            appointment = Appointment.objects.get(id=kwargs['pk'])
+            if (doctor != appointment.schedule_doctor.doctor):
+                return Response({'detail': 'doctor is not doctor of appointment'}, status=status.HTTP_400_BAD_REQUEST)
+        except Doctor.DoesNotExist:
+            user = User.objects.get(account=request.account)
+            appointment = Appointment.objects.get(id=kwargs['pk'])
+            if (user != appointment.user):
+                return Response({'detail': 'user is not user of appointment'}, status=status.HTTP_400_BAD_REQUEST)
+        # update status cho appointment
+        try:
+            appointment.status = request.data['status']
+        except KeyError:
+            return Response({'detail': 'status is not exist'}, status=status.HTTP_400_BAD_REQUEST)
+        appointment.save()
+        serializer = AppointmentSerializer(appointment)
+        return Response(serializer.data, status=status.HTTP_200_OK)

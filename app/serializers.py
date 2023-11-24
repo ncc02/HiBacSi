@@ -85,10 +85,16 @@ class GetSchedulerSerializer(serializers.Serializer):
     evening = ScheduleSerializer(many=True)
 
 class AppointmentSerializer(serializers.ModelSerializer):
+    schedule_doctor = SchedulerDoctorSerializer()
     class Meta:
         model = Appointment
-        fields = '__all__'
+        # fields = '__all__'
+        fields = ['id', 'user_id', 'schedule_doctor', 'date', 'time', 'status', 'rating']
 
+class GetAppointmentSerializer(serializers.Serializer):
+    coming = AppointmentSerializer(many=True)
+    not_confirm = AppointmentSerializer(many=True)
+    confirmed = AppointmentSerializer(many=True)
 
 class ToolSerializer(serializers.ModelSerializer):
     class Meta:
