@@ -70,6 +70,7 @@ class Doctor(models.Model):
     gender = models.BooleanField(null=True, blank=True)
     years_of_experience = models.IntegerField(null=True, blank=True)
     describe = models.TextField(null=True, blank=True)
+    num_of_rating = models.IntegerField(default=0)
     rating = models.FloatField(default=0, validators=[MinValueValidator(0), MaxValueValidator(5)])  # Sử dụng FloatField cho đánh giá
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # Sử dụng DecimalField cho tiền tối ưu
 
@@ -111,6 +112,7 @@ class Appointment(models.Model):
     date = models.DateField()
     time = models.TimeField(null=True)
     status = models.IntegerField(default=0) # 0: chưa xác nhận, 1: đã xác nhận, 2: đã hủy
+    rating = models.FloatField(default=0, validators=[MinValueValidator(0), MaxValueValidator(5)])  # Sử dụng FloatField cho đánh giá
     def __str__(self):
         return f"Lịch hẹn ngày {self.date} vào {self.time}"
 
