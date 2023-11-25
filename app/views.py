@@ -378,8 +378,8 @@ class SearchAllAPIView(APIView):
         name = request.query_params.get('name', '')
         address = request.query_params.get('address', '')
 
-        doctors = Doctor.objects.filter(name__icontains=name, address__icontains=address)
-        hospitals = Hospital.objects.filter(name__icontains=name, address__icontains=address)
+        doctors = Doctor.objects.filter(name__icontains=name, address__icontains=address).order_by('id')
+        hospitals = Hospital.objects.filter(name__icontains=name, address__icontains=address).order_by('id')
         
         doctors_address = Doctor.objects.filter(address__icontains=address)
 
@@ -387,9 +387,9 @@ class SearchAllAPIView(APIView):
         doctor_ids_with_address = doctors_address.values_list('id', flat=True)
 
         # Filter specialties and services based on doctors with the specified address
-        specialtys = Specialty.objects.filter(doctor__id__in=doctor_ids_with_address, name__icontains=name).distinct()
-        services = Service.objects.filter(doctor__id__in=doctor_ids_with_address, name__icontains=name).distinct()
-        
+        specialtys = Specialty.objects.filter(specialtydoctor__doctor__id__in=doctor_ids_with_address, name__icontains=name).distinct().order_by('id')
+        # Filter services based on doctors with the specified address
+        services = Service.objects.filter(servicedoctor__doctor__id__in=doctor_ids_with_address, name__icontains=name).distinct().order_by('id')
 
         doctor_serializer = DoctorSerializer(doctors, many=True)
         hospital_serializer = HospitalSerializer(hospitals, many=True)
@@ -419,6 +419,7 @@ class SearchAllAPIView(APIView):
 
 
         response_data = {
+            'total_page':paginator.page.paginator.num_pages,
             'count_doctors': count_doctors,
             'count_hospitals': count_hospitals,
             'count_specialtys': count_specialtys,
@@ -461,7 +462,7 @@ class SearchDoctorAPIView(APIView):
             **hospital_filter,
         }
 
-        doctors = Doctor.objects.filter(**filters)
+        doctors = Doctor.objects.filter(**filters).order_by('id')
 
         doctor_serializer = DoctorSerializer(doctors, many=True)
         count_doctors = len(doctor_serializer.data)
@@ -471,13 +472,13 @@ class SearchDoctorAPIView(APIView):
             **service_filter,
         )
 
-        doctor_specialty_ids = doctors_ss.values_list('hospital__id', flat=True).distinct()
+        doctor_specialty_ids = doctors_ss.values_list('hospital__id', flat=True).distinct().order_by('id')
 
         hospitals = Hospital.objects.filter(
             name__icontains=name,
             address__icontains=address,
             id__in=doctor_specialty_ids,
-        )
+        ).order_by('id')
         hospital_serializer = HospitalSerializer(hospitals, many=True)
         count_hospitals = len(hospital_serializer.data)
 
@@ -491,6 +492,7 @@ class SearchDoctorAPIView(APIView):
 
 
         response_data = {
+            'total_page':paginator.page.paginator.num_pages,
             'total_doctors': count_doctors,
             'total_hospitals': count_hospitals,    
             'doctors': doctor_serializer.data,
