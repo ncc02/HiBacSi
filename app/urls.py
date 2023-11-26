@@ -28,8 +28,15 @@ urlpatterns = [
     path('booking/', include('booking.urls')),
     #Account update ko can thiet vi da co CRUD
     # path('account_update/<int:pk>/', AccountUpdateAPIView.as_view(), name='account-update'),
-    path('search_all/', SearchAllAPIView.as_view()),
-    path('search_doctor/', SearchDoctorAPIView.as_view()),
+    path('search_doctor666/', DoctorSearch666View.as_view()),
+    path('search_hospital666/', HospitalSearch666View.as_view()),
+    path('search_specialty666/', SpecialtySearch666View.as_view()),
+    path('search_service666/', ServiceSearch666View.as_view()),
+    
+    path('search_doctor/', DoctorSearchView.as_view()),
+    path('search_hospital/', HospitalSearchView.as_view()),
+    path('search_specialty/', SpecialtySearchView.as_view()),
+    path('search_service/', ServiceSearchView.as_view()),
     path('schedulerdoctor/', GetSchedulerDoctor.as_view(), name='getscheduler'),
     path('search_blog/', BlogSearchView.as_view(), name='search_blog'),
     path('accounts/<int:pk>/change_password', UserPasswordUpdateAPIView.as_view(), name='user-change-password'),
@@ -37,5 +44,8 @@ urlpatterns = [
     path('appointmentsbyuser/', GetAppointment.as_view(), name='getappointment'),
     path('ratingappointment/<int:pk>/', RatingAppointment.as_view(), name='ratingappointment'),
     path('statusappointment/<int:pk>/', StatusAppointment.as_view(), name='statusappointment'),
+
+    path('test/', TestAPIView.as_view(), name='test'),
+
     path('', include(router.urls)),
 ]

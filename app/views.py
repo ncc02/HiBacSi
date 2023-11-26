@@ -371,142 +371,157 @@ class CustomPagination(PageNumberPagination):
 class CustomPagination2(PageNumberPagination):
     page_size = 2
 
+
 @authentication_classes([])
-class SearchAllAPIView(APIView):   
+class TestAPIView(APIView):   
 
     def get(self, request):
-        name = request.query_params.get('name', '')
-        address = request.query_params.get('address', '')
 
-        doctors = Doctor.objects.filter(name__icontains=name, address__icontains=address).order_by('id')
-        hospitals = Hospital.objects.filter(name__icontains=name, address__icontains=address).order_by('id')
-        
-        doctors_address = Doctor.objects.filter(address__icontains=address)
-
-        # Get the IDs of doctors with the specified address
-        doctor_ids_with_address = doctors_address.values_list('id', flat=True)
-
-        # Filter specialties and services based on doctors with the specified address
-        specialtys = Specialty.objects.filter(specialtydoctor__doctor__id__in=doctor_ids_with_address, name__icontains=name).distinct().order_by('id')
-        # Filter services based on doctors with the specified address
-        services = Service.objects.filter(servicedoctor__doctor__id__in=doctor_ids_with_address, name__icontains=name).distinct().order_by('id')
-
-        doctor_serializer = DoctorSerializer(doctors, many=True)
-        hospital_serializer = HospitalSerializer(hospitals, many=True)
-        specialty_serializer = SpecialtySerializer(specialtys, many=True)
-        services_serializer = ServiceSerializer(services, many=True)
-        
-        # Đếm số lượng đối tượng trong mỗi danh sách
-        count_doctors = len(doctor_serializer.data)
-        count_hospitals = len(hospital_serializer.data)
-        count_specialtys = len(specialty_serializer.data)
-        count_services = len(services_serializer.data)
-
-
+        tests = Test.objects.all()
         paginator = CustomPagination2()
-        paginated_doctors = paginator.paginate_queryset(doctors, request)
-        doctor_serializer = DoctorSerializer(paginated_doctors, many=True)
+        paginated_tests = paginator.paginate_queryset(tests, request)
+        test_serializer = TestSerializer(paginated_tests, many=True)
         
-        paginated_hospitals = paginator.paginate_queryset(hospitals, request)
-        hospital_serializer = HospitalSerializer(paginated_hospitals, many=True)
-        
-        paginated_specialtys = paginator.paginate_queryset(specialtys, request)
-        specialty_serializer = SpecialtySerializer(paginated_specialtys, many=True)
-        
-        paginated_services = paginator.paginate_queryset(services, request)
-        services_serializer = ServiceSerializer(paginated_services, many=True)
-        
-
 
         response_data = {
             'total_page':paginator.page.paginator.num_pages,
-            'count_doctors': count_doctors,
-            'count_hospitals': count_hospitals,
-            'count_specialtys': count_specialtys,
-            'count_services': count_services,
-            'doctors': doctor_serializer.data,
-            'hospitals': hospital_serializer.data,
-            'specialtys': specialty_serializer.data,
-            'services': services_serializer.data,
+            'services': test_serializer.data,
+        }
+
+        return paginator.get_paginated_response(response_data)
+
+
+# @authentication_classes([])
+# class SearchAllAPIView(APIView):   
+
+#     def get(self, request):
+#         name = request.query_params.get('name', '')
+#         address = request.query_params.get('address', '')
+
+#         doctors = Doctor.objects.filter(name__icontains=name, address__icontains=address).order_by('id')
+#         hospitals = Hospital.objects.filter(name__icontains=name, address__icontains=address).order_by('id')
+        
+#         doctors_address = Doctor.objects.filter(address__icontains=address)
+
+#         doctor_ids_with_address = doctors_address.values_list('id', flat=True)
+
+#         specialtys = Specialty.objects.filter(specialtydoctor__doctor__id__in=doctor_ids_with_address, name__icontains=name).distinct().order_by('id')
+#         services = Service.objects.filter(servicedoctor__doctor__id__in=doctor_ids_with_address, name__icontains=name).distinct().order_by('id')
+
+#         Xdoctor_serializer = DoctorSerializer(doctors, many=True)
+#         Xhospital_serializer = HospitalSerializer(hospitals, many=True)
+#         Xspecialty_serializer = SpecialtySerializer(specialtys, many=True)
+#         Xservices_serializer = ServiceSerializer(services, many=True)
+        
+#         count_doctors = len(Xdoctor_serializer.data)
+#         count_hospitals = len(Xhospital_serializer.data)
+#         count_specialtys = len(Xspecialty_serializer.data)
+#         count_services = len(Xservices_serializer.data)
+
+
+#         paginator = CustomPagination2()
+#         paginated_doctors = paginator.paginate_queryset(doctors, request)
+#         doctor_serializer = DoctorSerializer(paginated_doctors, many=True)
+        
+#         paginated_hospitals = paginator.paginate_queryset(hospitals, request)
+#         hospital_serializer = HospitalSerializer(paginated_hospitals, many=True)
+        
+#         paginated_specialtys = paginator.paginate_queryset(specialtys, request)
+#         specialty_serializer = SpecialtySerializer(paginated_specialtys, many=True)
+        
+#         paginated_services = paginator.paginate_queryset(services, request)
+#         services_serializer = ServiceSerializer(paginated_services, many=True)
+        
+
+
+#         response_data = {
+#             'total_page':paginator.page.paginator.num_pages,
+#             'count_doctors': count_doctors,
+#             'count_hospitals': count_hospitals,
+#             'count_specialtys': count_specialtys,
+#             'count_services': count_services,
+#             'doctors': doctor_serializer.data,
+#             'hospitals': hospital_serializer.data,
+#             'specialtys': specialty_serializer.data,
+#             'services': services_serializer.data,
             
-        }
+#         }
 
-        return paginator.get_paginated_response(response_data)
+#         return paginator.get_paginated_response(response_data)
 
-
-@authentication_classes([])
-class SearchDoctorAPIView(APIView):
+# @authentication_classes([])
+# class SearchDoctorAPIView(APIView):
     
-    def get(self, request): 
-        name = request.query_params.get('name', '')
-        address = request.query_params.get('address', '')
-        specialty = request.query_params.get('specialty', '')
-        service = request.query_params.get('service', '')
-        hospital = request.query_params.get('hospital', '')
+#     def get(self, request): 
+#         name = request.query_params.get('name', '')
+#         address = request.query_params.get('address', '')
+#         specialty = request.query_params.get('specialty', '')
+#         service = request.query_params.get('service', '')
+#         hospital = request.query_params.get('hospital', '')
 
-        # Bỏ điều kiện lọc cho specialty nếu specialty không được cung cấp
-        specialty_filter = {} if not specialty else {'specialtydoctor__specialty__id': specialty}
+#         # Bỏ điều kiện lọc cho specialty nếu specialty không được cung cấp
+#         specialty_filter = {} if not specialty else {'specialtydoctor__specialty__id': specialty}
 
-        # Bỏ điều kiện lọc cho service nếu service không được cung cấp
-        service_filter = {} if not service else {'servicedoctor__service__id': service}
+#         # Bỏ điều kiện lọc cho service nếu service không được cung cấp
+#         service_filter = {} if not service else {'servicedoctor__service__id': service}
 
-        # Bỏ điều kiện lọc cho hospital nếu hospital không được cung cấp
-        hospital_filter = {} if not hospital else {'hospital__id': hospital}
+#         # Bỏ điều kiện lọc cho hospital nếu hospital không được cung cấp
+#         hospital_filter = {} if not hospital else {'hospital__id': hospital}
 
-        # Combine all filters
-        filters = {
-            'name__icontains': name,
-            'address__icontains': address,
-            **specialty_filter,
-            **service_filter,
-            **hospital_filter,
-        }
+#         # Combine all filters
+#         filters = {
+#             'name__icontains': name,
+#             'address__icontains': address,
+#             **specialty_filter,
+#             **service_filter,
+#             **hospital_filter,
+#         }
 
-        doctors = Doctor.objects.filter(**filters).order_by('id')
+#         doctors = Doctor.objects.filter(**filters).order_by('id')
 
-        doctor_serializer = DoctorSerializer(doctors, many=True)
-        count_doctors = len(doctor_serializer.data)
+#         doctor_serializer = DoctorSerializer(doctors, many=True)
+#         count_doctors = len(doctor_serializer.data)
         
-        doctors_ss = Doctor.objects.filter(        
-            **specialty_filter,
-            **service_filter,
-        )
+#         doctors_ss = Doctor.objects.filter(        
+#             **specialty_filter,
+#             **service_filter,
+#         )
 
-        doctor_specialty_ids = doctors_ss.values_list('hospital__id', flat=True).distinct().order_by('id')
+#         doctor_specialty_ids = doctors_ss.values_list('hospital__id', flat=True).distinct().order_by('id')
 
-        hospitals = Hospital.objects.filter(
-            name__icontains=name,
-            address__icontains=address,
-            id__in=doctor_specialty_ids,
-        ).order_by('id')
-        hospital_serializer = HospitalSerializer(hospitals, many=True)
-        count_hospitals = len(hospital_serializer.data)
+#         hospitals = Hospital.objects.filter(
+#             name__icontains=name,
+#             address__icontains=address,
+#             id__in=doctor_specialty_ids,
+#         ).order_by('id')
+#         hospital_serializer = HospitalSerializer(hospitals, many=True)
+#         count_hospitals = len(hospital_serializer.data)
 
-        paginator = CustomPagination()
+#         paginator = CustomPagination()
 
-        paginated_doctors = paginator.paginate_queryset(doctors, request)
-        doctor_serializer = DoctorSerializer(paginated_doctors, many=True)
+#         paginated_doctors = paginator.paginate_queryset(doctors, request)
+#         doctor_serializer = DoctorSerializer(paginated_doctors, many=True)
 
-        paginated_hospitals = paginator.paginate_queryset(hospitals, request)
-        hospital_serializer = HospitalSerializer(paginated_hospitals, many=True)
+#         paginated_hospitals = paginator.paginate_queryset(hospitals, request)
+#         hospital_serializer = HospitalSerializer(paginated_hospitals, many=True)
 
 
-        response_data = {
-            'total_page':paginator.page.paginator.num_pages,
-            'total_doctors': count_doctors,
-            'total_hospitals': count_hospitals,    
-            'doctors': doctor_serializer.data,
-            'hospitals': hospital_serializer.data,
-        }
-        return paginator.get_paginated_response(response_data)
+#         response_data = {
+#             'total_page':paginator.page.paginator.num_pages,
+#             'total_doctors': count_doctors,
+#             'total_hospitals': count_hospitals,    
+#             'doctors': doctor_serializer.data,
+#             'hospitals': hospital_serializer.data,
+#         }
+#         return paginator.get_paginated_response(response_data)
         
-        # return Response(response_data, status=status.HTTP_200_OK)
+#         # return Response(response_data, status=status.HTTP_200_OK)
 
 
 @authentication_classes([])
 class BlogSearchView(generics.ListAPIView):
     serializer_class = BlogSerializer
-
+    
     def get_queryset(self):
         name = self.request.query_params.get('name', None)
         id_category = self.request.query_params.get('id_category', None)
@@ -524,7 +539,233 @@ class BlogSearchView(generics.ListAPIView):
 
         return queryset
     
+@authentication_classes([])
+class DoctorSearchView(generics.ListAPIView):
+    serializer_class = DoctorSerializer  # Corrected serializer class name
+    pagination_class = CustomPagination2
+    
+    def get_queryset(self):
+        name = self.request.query_params.get('name', None)
+        city = self.request.query_params.get('city', None)
+        id_hospital = self.request.query_params.get('id_hospital', None)  # Corrected parameter name
+        id_specialty = self.request.query_params.get('id_specialty', None)
+        id_service = self.request.query_params.get('id_service', None)
 
+        queryset = Doctor.objects.all()
+
+        if name:
+            queryset = queryset.filter(name__icontains=name)
+
+        if city:
+            queryset = queryset.filter(city__icontains=city)
+
+        if id_hospital:
+            queryset = queryset.filter(hospital__id=id_hospital)  # Corrected filtering by hospital ID
+
+        if id_specialty:
+            queryset = queryset.filter(specialtydoctor__specialty__id=id_specialty)  # Corrected filtering by specialty ID
+
+        if id_service:
+            queryset = queryset.filter(servicedoctor__service__id=id_service)  # Corrected filtering by service ID
+
+        return queryset
+
+@authentication_classes([])
+class HospitalSearchView(generics.ListAPIView):
+    serializer_class = HospitalSerializer
+    pagination_class = CustomPagination2
+    
+    def get_queryset(self):
+        name = self.request.query_params.get('name', None)
+        city = self.request.query_params.get('city', None)
+        id_specialty = self.request.query_params.get('id_specialty', None)
+        id_service = self.request.query_params.get('id_service', None)
+
+        queryset = Hospital.objects.all()
+
+        if name:
+            queryset = queryset.filter(name__icontains=name)
+
+        if city:
+            queryset = queryset.filter(city__icontains=city)
+
+        if id_specialty:
+            # Filter hospitals based on doctors with the given specialty
+            queryset = queryset.filter(doctor__specialtydoctor__specialty__id=id_specialty)
+
+        if id_service:
+            # Filter hospitals based on doctors with the given service
+            queryset = queryset.filter(doctor__servicedoctor__service__id=id_service)
+
+        return queryset
+
+
+@authentication_classes([])
+class DoctorSearch666View(generics.ListAPIView):
+    serializer_class = DoctorSerializer  # Corrected serializer class name
+    pagination_class = CustomPagination
+    
+    def get_queryset(self):
+        name = self.request.query_params.get('name', None)
+        city = self.request.query_params.get('city', None)
+        id_hospital = self.request.query_params.get('id_hospital', None)  # Corrected parameter name
+        id_specialty = self.request.query_params.get('id_specialty', None)
+        id_service = self.request.query_params.get('id_service', None)
+
+        queryset = Doctor.objects.all()
+
+        if name:
+            queryset = queryset.filter(name__icontains=name)
+
+        if city:
+            queryset = queryset.filter(city__icontains=city)
+
+        if id_hospital:
+            queryset = queryset.filter(hospital__id=id_hospital)  # Corrected filtering by hospital ID
+
+        if id_specialty:
+            queryset = queryset.filter(specialtydoctor__specialty__id=id_specialty)  # Corrected filtering by specialty ID
+
+        if id_service:
+            queryset = queryset.filter(servicedoctor__service__id=id_service)  # Corrected filtering by service ID
+
+        return queryset
+
+@authentication_classes([])
+class HospitalSearch666View(generics.ListAPIView):
+    serializer_class = HospitalSerializer
+    pagination_class = CustomPagination
+    
+    def get_queryset(self):
+        name = self.request.query_params.get('name', None)
+        city = self.request.query_params.get('city', None)
+        id_specialty = self.request.query_params.get('id_specialty', None)
+        id_service = self.request.query_params.get('id_service', None)
+
+        queryset = Hospital.objects.all()
+
+        if name:
+            queryset = queryset.filter(name__icontains=name)
+
+        if city:
+            queryset = queryset.filter(city__icontains=city)
+
+        if id_specialty:
+            # Filter hospitals based on doctors with the given specialty
+            queryset = queryset.filter(doctor__specialtydoctor__specialty__id=id_specialty)
+
+        if id_service:
+            # Filter hospitals based on doctors with the given service
+            queryset = queryset.filter(doctor__servicedoctor__service__id=id_service)
+
+        return queryset
+
+@authentication_classes([])
+class SpecialtySearchView(generics.ListAPIView):
+    serializer_class = SpecialtySerializer
+    pagination_class = CustomPagination2
+    
+    def get_queryset(self):
+        name = self.request.query_params.get('name', None)
+        city = self.request.query_params.get('city', None)
+        id_doctor = self.request.query_params.get('id_doctor', None)
+        id_hospital = self.request.query_params.get('id_hospital', None)
+             
+        queryset = Specialty.objects.all()
+
+        if name:
+            queryset = queryset.filter(name__icontains=name)
+
+        if city:
+            queryset = queryset.filter(specialtydoctor__doctor__city__icontains=city)
+
+        if id_doctor:
+            queryset = queryset.filter(specialtydoctor__doctor__id=id_doctor)
+
+        if id_hospital:
+            queryset = queryset.filter(specialtydoctor__doctor__hospital__id=id_hospital)
+        return queryset
+
+@authentication_classes([])
+class SpecialtySearch666View(generics.ListAPIView):
+    serializer_class = SpecialtySerializer
+    pagination_class = CustomPagination
+    
+    def get_queryset(self):
+        name = self.request.query_params.get('name', None)
+        city = self.request.query_params.get('city', None)
+        id_doctor = self.request.query_params.get('id_doctor', None)
+        id_hospital = self.request.query_params.get('id_hospital', None)
+             
+        queryset = Specialty.objects.all()
+
+        if name:
+            queryset = queryset.filter(name__icontains=name)
+
+        if city:
+            queryset = queryset.filter(specialtydoctor__doctor__city__icontains=city)
+
+        if id_doctor:
+            queryset = queryset.filter(specialtydoctor__doctor__id=id_doctor)
+
+        if id_hospital:
+            queryset = queryset.filter(specialtydoctor__doctor__hospital__id=id_hospital)
+        return queryset
+
+@authentication_classes([])
+class ServiceSearchView(generics.ListAPIView):
+    serializer_class = ServiceSerializer
+    pagination_class = CustomPagination2
+    
+    def get_queryset(self):
+        name = self.request.query_params.get('name', None)
+        city = self.request.query_params.get('city', None)
+        id_doctor = self.request.query_params.get('id_doctor', None)
+        id_hospital = self.request.query_params.get('id_hospital', None)
+
+        queryset = Service.objects.all()
+
+        if name:
+            queryset = queryset.filter(name__icontains=name)
+
+        if city:
+            queryset = queryset.filter(servicedoctor__doctor__city__icontains=city)
+
+        if id_doctor:
+            queryset = queryset.filter(servicedoctor__doctor__id=id_doctor)
+
+        if id_hospital:
+            queryset = queryset.filter(servicedoctor__doctor__hospital__id=id_hospital)
+
+        return queryset
+
+@authentication_classes([])
+class ServiceSearch666View(generics.ListAPIView):
+    serializer_class = ServiceSerializer
+    pagination_class = CustomPagination
+    
+    def get_queryset(self):
+        name = self.request.query_params.get('name', None)
+        city = self.request.query_params.get('city', None)
+        id_doctor = self.request.query_params.get('id_doctor', None)
+        id_hospital = self.request.query_params.get('id_hospital', None)
+
+
+        queryset = Service.objects.all()
+
+        if name:
+            queryset = queryset.filter(name__icontains=name)
+
+        if city:
+            queryset = queryset.filter(servicedoctor__doctor__city__icontains=city)
+
+        if id_doctor:
+            queryset = queryset.filter(servicedoctor__doctor__id=id_doctor)
+
+        if id_hospital:
+            queryset = queryset.filter(servicedoctor__doctor__hospital__id=id_hospital)
+
+        return queryset
 
 import hashlib
 def hash_password(password):
@@ -589,7 +830,6 @@ class GetAppointment(GenericAPIView):
         print(3)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
-@authentication_classes([])
 # create RatingAppointment
 @permission_classes([IsUserPermission])
 class RatingAppointment(GenericAPIView):
@@ -643,3 +883,5 @@ class StatusAppointment(GenericAPIView):
         appointment.save()
         serializer = AppointmentSerializer(appointment)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+

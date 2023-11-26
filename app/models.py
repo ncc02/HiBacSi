@@ -47,6 +47,16 @@ class Hospital(models.Model):
     email = models.EmailField()
     address = models.CharField(max_length=255)
     address_map = models.CharField(max_length=255, null=True, blank=True)
+    CITY_CHOICES = [
+        ('Hanoi', 'Hà Nội'),
+        ('HoChiMinh', 'Hồ Chí Minh'),
+        ('Danang', 'Đà Nẵng'),
+        
+        # Add the rest of the cities here
+        # ('CityCode', 'CityName'),
+    ]
+
+    city = models.CharField(max_length=255, choices=CITY_CHOICES, null=True, blank=True)
     info = models.TextField(default='')
 
 
@@ -54,7 +64,7 @@ class Hospital(models.Model):
         return self.name
 
 class Specialty(models.Model):
-    icon = models.ImageField(upload_to='media/', null=True)
+    icon = models.ImageField(upload_to='media/', null=True, blank=True)
     name = models.CharField(max_length=255)
     describe = models.TextField()
 
@@ -65,6 +75,13 @@ class Doctor(models.Model):
     account = models.OneToOneField(Account, on_delete=models.CASCADE, related_name='doctor', null=True)
     name = models.CharField(max_length=255)
     address = models.CharField(max_length=255, null=True, blank=True)
+    CITY_CHOICES = [
+        ('Hanoi', 'Hà Nội'),
+        ('HoChiMinh', 'Hồ Chí Minh'),
+        ('Danang', 'Đà Nẵng'),
+    ]
+
+    city = models.CharField(max_length=255, choices=CITY_CHOICES, null=True, blank=True)
     # specialty = models.ForeignKey(Specialty, on_delete=models.CASCADE)  # Thay thế bằng khoá ngoại đến model Chuyên khoa (Specialty)
     hospital = models.ForeignKey(Hospital, on_delete=models.CASCADE)  # Thay thế bằng khoá ngoại đến model Bệnh viện (Hospital)
     phone = models.CharField(max_length=20)
@@ -75,7 +92,7 @@ class Doctor(models.Model):
     num_of_rating = models.IntegerField(default=0)
     rating = models.FloatField(default=0, validators=[MinValueValidator(0), MaxValueValidator(5)])  # Sử dụng FloatField cho đánh giá
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # Sử dụng DecimalField cho tiền tối ưu
-
+    
     def __str__(self):
         return self.name
 
@@ -89,7 +106,7 @@ class SpecialtyDoctor(models.Model):
 
 
 class Service(models.Model):
-    icon = models.ImageField(upload_to='media/', null=True)
+    icon = models.ImageField(upload_to='media/', null=True, blank=True)
     name = models.CharField(max_length=255)
     descripe = models.TextField()
 
@@ -160,3 +177,8 @@ class Blog(models.Model):
     def __str__(self):
         return str(self.id)
 
+class Test(models.Model):
+    time = models.TimeField()
+
+    def __str__(self):
+        return str(self.time)

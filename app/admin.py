@@ -19,3 +19,6 @@ admin.site.register(Scheduler_Doctor)
 admin.site.register(Appointment)
 
 admin.site.register(Tool)
+
+
+admin.site.register(Test)
