@@ -28,7 +28,7 @@ urlpatterns = [
     
     path('search_all/', SearchAllAPIView.as_view()),
     path('search_doctor/', SearchDoctorAPIView.as_view()),
-    path('schedulerdoctor/', GetSchedulerDoctor.as_view(), name='getscheduler'),
+    path('getschedulerdoctor/', GetSchedulerDoctor.as_view(), name='getscheduler'),
     path('appointmentsbyuser/', GetAppointment.as_view(), name='getappointment'),
     path('ratingappointment/<int:pk>/', RatingAppointment.as_view(), name='ratingappointment'),
     path('statusappointment/<int:pk>/', StatusAppointment.as_view(), name='statusappointment'),

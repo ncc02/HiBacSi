@@ -198,13 +198,14 @@ class SchedulerDoctorViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         data = request.data.copy()
         print(data['doctor_id'])
-        data['id_doctor'] = Doctor.objects.get(id = data['doctor_id'])
-        data['id_schedule'] = Schedule.objects.get(id = data['schedule_id'])
-        if (data['id_doctor'] == None or data['id_schedule'] == None):
+        try:
+            data['id_doctor'] = Doctor.objects.get(id = data['doctor_id'])
+            data['id_schedule'] = Schedule.objects.get(id = data['schedule_id'])
+        except:
             return Response({'detail': 'no find doctor or schedule'}, status=status.HTTP_400_BAD_REQUEST)
         if (Scheduler_Doctor.objects.filter(doctor=data['id_doctor'], schedule=data['id_schedule']).exists()):
             return Response({'detail': 'schedule_doctor is exist'}, status=status.HTTP_400_BAD_REQUEST)
-        schedule_doctor = Scheduler_Doctor.objects.create(doctor=data['id_doctor'], id_schedule=data['id_schedule'])
+        schedule_doctor = Scheduler_Doctor.objects.create(doctor=data['id_doctor'], schedule=data['id_schedule'])
         schedule_doctor.save()
         serializer = SchedulerDoctorSerializer(schedule_doctor)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
