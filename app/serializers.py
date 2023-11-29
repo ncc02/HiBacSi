@@ -18,19 +18,26 @@ class AccountSerializer(serializers.ModelSerializer):
     #     return data
 
 class UserSerializer(serializers.ModelSerializer):
-    account = AccountSerializer()
+    # account = AccountSerializer()
     class Meta:
         model = User
         fields = '__all__'
 
 class AdminSerializer(serializers.ModelSerializer):
-    account = AccountSerializer()
+    # account = AccountSerializer()
     class Meta:
         model = Admin
         fields = '__all__'
 
 
+class HospitalSerializer(serializers.ModelSerializer):
+    # account = AccountSerializer()
+    class Meta:
+        model = Hospital
+        fields = '__all__'
+
 class XHospitalSerializer(serializers.ModelSerializer):
+
     # account = AccountSerializer()
     class Meta:
         model = Hospital
@@ -75,7 +82,7 @@ class HospitalSerializer(serializers.ModelSerializer):
 
 
 class DoctorSerializer(serializers.ModelSerializer):
-    account = AccountSerializer()
+    # account = AccountSerializer()
     hospital = HospitalSerializer()
     specialties = SpecialtyDoctorSerializer(many=True, source='specialtydoctor_set')
     services = ServiceDoctorSerializer(many=True, source='servicedoctor_set')
@@ -100,10 +107,12 @@ class ScheduleSerializer(serializers.ModelSerializer):
 
 class SchedulerDoctorSerializer(serializers.ModelSerializer):
     schedule = ScheduleSerializer()
+    doctor = DoctorSerializer()    
     class Meta:
         model = Scheduler_Doctor
-        # all except id_doctor and id_schedule
-        fields = ['id', 'doctor_id', 'schedule_id', 'schedule']
+        # fields = '__all__'
+        fields = ['id', 'schedule', 'doctor']
+        # fields = ['id', 'doctor_id', 'schedule_id', 'schedule', 'doctor']
 
 class GetSchedulerSerializer(serializers.Serializer):
     morning = ScheduleSerializer(many=True)
@@ -112,15 +121,18 @@ class GetSchedulerSerializer(serializers.Serializer):
 
 class AppointmentSerializer(serializers.ModelSerializer):
     schedule_doctor = SchedulerDoctorSerializer()
+    # user = UserSerializer()
     class Meta:
         model = Appointment
-        # fields = '__all__'
         fields = ['id', 'user_id', 'schedule_doctor', 'date', 'time', 'status', 'rating']
+
 
 class GetAppointmentSerializer(serializers.Serializer):
     coming = AppointmentSerializer(many=True)
     not_confirm = AppointmentSerializer(many=True)
     confirmed = AppointmentSerializer(many=True)
+    cancel = AppointmentSerializer(many=True)
+
 
 class ToolSerializer(serializers.ModelSerializer):
     class Meta:

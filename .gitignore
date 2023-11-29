@@ -1,5 +1,6 @@
 log.txt
 env/
 .venv/
-READEME.
+README.md
 __pycache__/
+db.sqlite3

@@ -33,17 +33,20 @@ class BookingView(GenericAPIView):
             time = datetime.datetime.strptime(time, '%H:%M').time()
         print(time, date, data)
         # get user by account
-        user = User.objects.get(account=request.account)
+        try: 
+            user = User.objects.get(account=request.account)
+        except User.DoesNotExist:
+            return Response({'detail': 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
         # check user has phone number
         if (user.phone == ''):
             return Response({'detail': 'User has not phone number'}, status=status.HTTP_400_BAD_REQUEST)
         # check user has address
         if (user.address == ''):
             return Response({'detail': 'User has not address'}, status=status.HTTP_400_BAD_REQUEST)
-        # get Schedule_Doctor by id_doctor and id_schedule
-        scheduleDoctor = Scheduler_Doctor.objects.get(doctor_id=id_doctor, schedule_id=id_schedule)
-        # check Schedule_Doctor is not null
-        if (scheduleDoctor == None):
+        # get Schedule_Doctor by id_doctor and id_schedule\
+        try:
+            scheduleDoctor = Scheduler_Doctor.objects.get(doctor_id=id_doctor, schedule_id=id_schedule)
+        except Scheduler_Doctor.DoesNotExist:
             return Response({'detail': 'Schedule_Doctor does not exist'}, status=status.HTTP_400_BAD_REQUEST)
         # check Schedule_Doctor is not full
         is_full = Appointment.objects.filter(schedule_doctor=scheduleDoctor, date=date).count() > 0
