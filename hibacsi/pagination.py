@@ -24,6 +24,8 @@ class CustomLimitOffsetPagination(pagination.LimitOffsetPagination):
     max_limit = 100
 
     def get_paginated_response(self, data):
+        print(self.offset)
+        print(self.limit)
         return Response({
             # 'links': {
             #     'next': self.get_next_link(),

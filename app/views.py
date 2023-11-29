@@ -255,24 +255,29 @@ class GetSchedulerDoctor(GenericAPIView):
             'afternoon': ScheduleSerializer(afternoon, many=True).data,
             'evening': ScheduleSerializer(evening, many=True).data,
         }
-        serializer = GetSchedulerSerializer(serializer_data)
+        serializer = GetSchedulerSerializer(data=serializer_data)
+        serializer.is_valid()
         print(serializer.data)
         return Response(serializer.data, status=status.HTTP_200_OK)
         
 # create GetAppointment
 @permission_classes([IsUserPermission])
 class GetAppointment(GenericAPIView):
-    serializer_class = AppointmentSerializer
+    serializer_class = GetAppointmentSerializer
     def get(self, request, *args, **kwargs):
-        print(1)
+        print(111)
         # get user by account
-        user = User.objects.get(account=request.account)
+        try:
+            user = User.objects.get(account=request.account)
+        except User.DoesNotExist:
+            return Response({'detail': 'user is not exist'}, status=status.HTTP_400_BAD_REQUEST)
         # get appointment by user
         appointment = Appointment.objects.filter(user=user)
         # chia appointment thanh 3 list là appointment sắp đến, appointment chưa xác nhận, appointment đã xác nhận
         appointment_coming = []
         appointment_not_confirm = []
         appointment_confirmed = []
+        appointment_cancel = []
         for i in appointment:
             if i.date > datetime.date.today():
                 appointment_coming.append(i)
@@ -280,16 +285,23 @@ class GetAppointment(GenericAPIView):
                 appointment_not_confirm.append(i)
             if i.status == 1:
                 appointment_confirmed.append(i)
+            if i.status == 2:
+                appointment_cancel.append(i)
+
         print(appointment_coming)
         print(appointment_not_confirm)
         print(appointment_confirmed)
+        print(appointment_cancel)
+
         serializer_data = {
             'coming': AppointmentSerializer(appointment_coming, many=True).data,
             'not_confirm': AppointmentSerializer(appointment_not_confirm, many=True).data,
             'confirmed': AppointmentSerializer(appointment_confirmed, many=True).data,
+            'cancel': AppointmentSerializer(appointment_cancel, many=True).data
         }
         print(2)
-        serializer = GetAppointmentSerializer(serializer_data)
+        serializer = GetAppointmentSerializer(data=serializer_data)
+        serializer.is_valid()
         print(3)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
