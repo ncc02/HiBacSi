@@ -230,10 +230,12 @@ class SchedulerDoctorViewSet(viewsets.ModelViewSet):
 class GetSchedulerDoctor(GenericAPIView):
     serializer_class = SchedulerDoctorSerializer
     def get(self, request, *args, **kwargs):
-        print("get")
         # get doctor
-        doctor_id = request.query_params.get('doctor')
-        print('doctor_id: ', doctor_id)
+        try: 
+            doctor_id = request.query_params.get('doctor')
+            print('doctor_id: ', doctor_id)
+        except KeyError:
+            return Response({'detail': 'key "doctor" is require'}, status=status.HTTP_400_BAD_REQUEST)
         schedule_doctor = Scheduler_Doctor.objects.filter(doctor=doctor_id)
         # chia schedule_doctor thanh 3 list theo morning, afternoon, evening
         print(2)
@@ -311,8 +313,14 @@ class RatingAppointment(GenericAPIView):
     serializer_class = AppointmentSerializer
     def post(self, request, *args, **kwargs):
         # kiểm tra user có phải là user của appointment   
-        user = User.objects.get(account=request.account)
-        appointment = Appointment.objects.get(id=kwargs['pk'])
+        try:
+            user = User.objects.get(account=request.account)
+        except User.DoesNotExist:
+            return Response({'detail': 'user is not exist'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            appointment = Appointment.objects.get(id=kwargs['pk'])
+        except Appointment.DoesNotExist:
+            return Response({'detail': 'appointment is not exist'}, status=status.HTTP_400_BAD_REQUEST)
         if (user != appointment.user):
             return Response({'detail': 'user is not user of appointment'}, status=status.HTTP_400_BAD_REQUEST)
         # update rating cho bác sĩ
@@ -394,13 +402,8 @@ class SpecialtyDoctorViewSet(viewsets.ModelViewSet):
         data = request.data.copy()
         try:
             data['specialty'] = Specialty.objects.get(id = data['specialty_id'])
-        except:
-            data['specialty'] = None
-        try:
             data['doctor'] = Doctor.objects.get(id = data['doctor_id'])
         except:
-            data['doctor'] = None
-        if (data['specialty'] == None or data['doctor'] == None):
             return Response({'detail': 'no find specialty or doctor'}, status=status.HTTP_400_BAD_REQUEST)
         if (SpecialtyDoctor.objects.filter(specialty=data['specialty'], doctor=data['doctor']).exists()):
             return Response({'detail': 'specialty_doctor is exist'}, status=status.HTTP_400_BAD_REQUEST)

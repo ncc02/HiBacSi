@@ -33,7 +33,10 @@ class BookingView(GenericAPIView):
             time = datetime.datetime.strptime(time, '%H:%M').time()
         print(time, date, data)
         # get user by account
-        user = User.objects.get(account=request.account)
+        try: 
+            user = User.objects.get(account=request.account)
+        except User.DoesNotExist:
+            return Response({'detail': 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
         # check user has phone number
         if (user.phone == ''):
             return Response({'detail': 'User has not phone number'}, status=status.HTTP_400_BAD_REQUEST)

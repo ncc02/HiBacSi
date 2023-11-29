@@ -30,19 +30,31 @@ class LoginView(GenericAPIView):
             account = AccountSerializer(account)
             serializer_base = {'account': account.data, 'refresh_token': refresh_token, 'access_token': access_token}
             if account.data['role'] == 'user':
-                user = User.objects.get(account=account.data['id'])
+                try:
+                    user = User.objects.get(account=account.data['id'])
+                except User.DoesNotExist:
+                    return Response({'detail': 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
                 user = UserSerializer(user)
                 serializer = {'user': user.data, **serializer_base}
             elif account.data['role'] == 'admin':
-                admin = Admin.objects.get(account=account.data['id'])
+                try:
+                    admin = Admin.objects.get(account=account.data['id'])
+                except Admin.DoesNotExist:
+                    return Response({'detail': 'Admin does not exist'}, status=status.HTTP_400_BAD_REQUEST)
                 admin = AdminSerializer(admin)
                 serializer = {'admin': admin.data, **serializer_base}   
             elif account.data['role'] == 'doctor':
-                doctor = Doctor.objects.get(account=account.data['id'])
+                try:
+                    doctor = Doctor.objects.get(account=account.data['id'])
+                except Doctor.DoesNotExist:
+                    return Response({'detail': 'Doctor does not exist'}, status=status.HTTP_400_BAD_REQUEST)
                 doctor = DoctorSerializer(doctor)
                 serializer = {'doctor': doctor.data, **serializer_base}
             elif account.data['role'] == 'hospital':
-                hospital = Hospital.objects.get(account=account.data['id'])
+                try:
+                    hospital = Hospital.objects.get(account=account.data['id'])
+                except Hospital.DoesNotExist:
+                    return Response({'detail': 'Hospital does not exist'}, status=status.HTTP_400_BAD_REQUEST)
                 hospital = HospitalSerializer(hospital)
                 serializer = {'hospital': hospital.data, **serializer_base}
             return Response(serializer, status=status.HTTP_200_OK)
