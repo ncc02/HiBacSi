@@ -29,7 +29,15 @@ class AdminSerializer(serializers.ModelSerializer):
         model = Admin
         fields = '__all__'
 
+
 class HospitalSerializer(serializers.ModelSerializer):
+    # account = AccountSerializer()
+    class Meta:
+        model = Hospital
+        fields = '__all__'
+
+class XHospitalSerializer(serializers.ModelSerializer):
+
     # account = AccountSerializer()
     class Meta:
         model = Hospital
@@ -56,12 +64,37 @@ class ServiceDoctorSerializer(serializers.ModelSerializer):
     class Meta:
         model = ServiceDoctor
         fields = '__all__'
-    
+
+class XDoctorSerializer(serializers.ModelSerializer):
+    # account = AccountSerializer()
+    # hospital = HospitalSerializer()
+    specialties = SpecialtyDoctorSerializer(many=True, source='specialtydoctor_set')
+    services = ServiceDoctorSerializer(many=True, source='servicedoctor_set')
+    class Meta:
+        model = Doctor
+        fields = '__all__'
+
+class HospitalSerializer(serializers.ModelSerializer):
+    account = AccountSerializer()
+    class Meta:
+        model = Hospital
+        fields = '__all__'
+
+
 class DoctorSerializer(serializers.ModelSerializer):
     # account = AccountSerializer()
     hospital = HospitalSerializer()
     specialties = SpecialtyDoctorSerializer(many=True, source='specialtydoctor_set')
     services = ServiceDoctorSerializer(many=True, source='servicedoctor_set')
+    class Meta:
+        model = Doctor
+        fields = '__all__'
+
+class XDoctorSerializer(serializers.ModelSerializer):
+    # account = AccountSerializer()
+    # hospital = HospitalSerializer()
+    # specialties = SpecialtyDoctorSerializer(many=True, source='specialtydoctor_set')
+    # services = ServiceDoctorSerializer(many=True, source='servicedoctor_set')
     class Meta:
         model = Doctor
         fields = '__all__'
@@ -92,13 +125,14 @@ class AppointmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Appointment
         fields = ['id', 'user_id', 'schedule_doctor', 'date', 'time', 'status', 'rating']
-        # fields = '__all__'
+
 
 class GetAppointmentSerializer(serializers.Serializer):
     coming = AppointmentSerializer(many=True)
     not_confirm = AppointmentSerializer(many=True)
     confirmed = AppointmentSerializer(many=True)
     cancel = AppointmentSerializer(many=True)
+
 
 class ToolSerializer(serializers.ModelSerializer):
     class Meta:
@@ -133,3 +167,29 @@ class BookingSerializer(serializers.ModelSerializer):
     id_schedule = serializers.IntegerField()
     date = serializers.DateField()
     time = serializers.TimeField()
+
+class CategorySerializer(serializers.ModelSerializer ):
+    class Meta:
+        model = Category
+        fields = '__all__'
+
+class BlogSerializer(serializers.ModelSerializer ):
+    id_doctor = DoctorSerializer()  # Sử dụng DoctorSerializer để bao gồm thông tin về bác sĩ
+    id_category = CategorySerializer()
+    class Meta:
+        model = Blog
+        fields = '__all__'
+
+
+class TestSerializer(serializers.ModelSerializer ):
+    class Meta:
+        model = Test
+        fields = '__all__'
+
+class UserPasswordUpdateSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=True)
+    oldpassword = serializers.CharField(write_only=True, required=True)
+
+    class Meta:
+        model = User
+        fields = ('password', 'oldpassword')
