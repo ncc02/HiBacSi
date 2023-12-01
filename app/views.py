@@ -21,44 +21,6 @@ def print_log(message):
         log_file.write(str(datetime.datetime.now()) + '\n' + message + '\n\n')
     pass
 
-# class LoginView(APIView):
-#     def post(self, request):
-#         username = request.data.get('username')
-#         password = request.data.get('password')
-
-#         success = utils.login_success(username=username, password=password)
-
-#         if success:
-#             # Đăng nhập thành công
-#             account = Account.objects.get(username=username)
-#             account_data = AccountSerializer(account).data
-#             auth_token = utils.generate_access_token(account)
-#             response_data = {
-#                 'state': True,
-#                 'account': account_data,
-#                 'token': auth_token
-#             }
-#             return Response(response_data, status=status.HTTP_200_OK)
-#         else:
-#             # Đăng nhập thất bại
-#             response_data = {'state': False, 'message': 'Invalid username or password'}
-#             return Response(response_data, status=status.HTTP_401_UNAUTHORIZED)
-
-
-# class RegisterUser(APIView):
-#     def post(self, request):
-#         data=request.data.copy()
-#         data['role'] = 'user'
-#         data['password'] = utils.hash_password(data['password'])
-#         serializer = AccountSerializer(data=data)
-#         if serializer.is_valid():
-#             serializer.save()
-#             return Response({'state': True, 'message': 'Registration successful.'})
-#         else:
-#             return Response({'state': False, 'message': serializer.errors})
-
-
-
 from rest_framework import viewsets
 
 
@@ -289,112 +251,7 @@ class GetSchedulerDoctor(GenericAPIView):
         serializer = GetSchedulerSerializer(data=serializer_data)
         serializer.is_valid()
         print(serializer.data)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-        
-# create GetAppointment
-@permission_classes([IsUserPermission])
-class GetAppointment(GenericAPIView):
-    serializer_class = GetAppointmentSerializer
-    def get(self, request, *args, **kwargs):
-        print(111)
-        # get user by account
-        try:
-            user = User.objects.get(account=request.account)
-        except User.DoesNotExist:
-            return Response({'detail': 'user is not exist'}, status=status.HTTP_400_BAD_REQUEST)
-        # get appointment by user
-        appointment = Appointment.objects.filter(user=user)
-        # chia appointment thanh 3 list là appointment sắp đến, appointment chưa xác nhận, appointment đã xác nhận
-        appointment_coming = []
-        appointment_not_confirm = []
-        appointment_confirmed = []
-        appointment_cancel = []
-        for i in appointment:
-            if i.date > datetime.date.today():
-                appointment_coming.append(i)
-            if i.status == 0:
-                appointment_not_confirm.append(i)
-            if i.status == 1:
-                appointment_confirmed.append(i)
-            if i.status == 2:
-                appointment_cancel.append(i)
-
-        print(appointment_coming)
-        print(appointment_not_confirm)
-        print(appointment_confirmed)
-        print(appointment_cancel)
-
-        serializer_data = {
-            'coming': AppointmentSerializer(appointment_coming, many=True).data,
-            'not_confirm': AppointmentSerializer(appointment_not_confirm, many=True).data,
-            'confirmed': AppointmentSerializer(appointment_confirmed, many=True).data,
-            'cancel': AppointmentSerializer(appointment_cancel, many=True).data
-        }
-        print(2)
-        serializer = GetAppointmentSerializer(data=serializer_data)
-        serializer.is_valid()
-        print(3)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-# create RatingAppointment
-@permission_classes([IsUserPermission])
-class RatingAppointment(GenericAPIView):
-    serializer_class = AppointmentSerializer
-    def post(self, request, *args, **kwargs):
-        # kiểm tra user có phải là user của appointment   
-        try:
-            user = User.objects.get(account=request.account)
-        except User.DoesNotExist:
-            return Response({'detail': 'user is not exist'}, status=status.HTTP_400_BAD_REQUEST)
-        try:
-            appointment = Appointment.objects.get(id=kwargs['pk'])
-        except Appointment.DoesNotExist:
-            return Response({'detail': 'appointment is not exist'}, status=status.HTTP_400_BAD_REQUEST)
-        if (user != appointment.user):
-            return Response({'detail': 'user is not user of appointment'}, status=status.HTTP_400_BAD_REQUEST)
-        # update rating cho bác sĩ
-        if (appointment.rating == 0):
-            doctor = appointment.schedule_doctor.doctor
-            doctor.num_of_rating += 1
-            try:
-                rating_value = float(request.data['rating'])
-            except KeyError:
-                return Response({'detail': 'rating is not exist'}, status=status.HTTP_400_BAD_REQUEST)
-            except ValueError:
-                rating_value = 0.0
-            doctor.rating = (doctor.rating * (doctor.num_of_rating - 1) + rating_value) / doctor.num_of_rating
-            doctor.save()
-        else:
-            return Response({'detail': 'appointment has been rated'}, status=status.HTTP_400_BAD_REQUEST)
-        # update rating cho appointment
-        appointment.rating = rating_value
-        appointment.save()
-        serializer = AppointmentSerializer(appointment)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-    
-# create StatusAppointment 
-@permission_classes([IsUserPermission | IsDoctorPermission])
-class StatusAppointment(GenericAPIView):
-    serializer_class = AppointmentSerializer
-    def post(self, request, *args, **kwargs):
-        try:
-            doctor = Doctor.objects.get(account=request.account)
-            appointment = Appointment.objects.get(id=kwargs['pk'])
-            if (doctor != appointment.schedule_doctor.doctor):
-                return Response({'detail': 'doctor is not doctor of appointment'}, status=status.HTTP_400_BAD_REQUEST)
-        except Doctor.DoesNotExist:
-            user = User.objects.get(account=request.account)
-            appointment = Appointment.objects.get(id=kwargs['pk'])
-            if (user != appointment.user):
-                return Response({'detail': 'user is not user of appointment'}, status=status.HTTP_400_BAD_REQUEST)
-        # update status cho appointment
-        try:
-            appointment.status = request.data['status']
-        except KeyError:
-            return Response({'detail': 'status is not exist'}, status=status.HTTP_400_BAD_REQUEST)
-        appointment.save()
-        serializer = AppointmentSerializer(appointment)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.data, status=status.HTTP_200_OK)        
 
 # @authentication_classes([])
 class AppointmentViewSet(viewsets.ModelViewSet):
@@ -491,133 +348,6 @@ class TestAPIView(APIView):
         }
 
         return paginator.get_paginated_response(response_data)
-
-
-# @authentication_classes([])
-# class SearchAllAPIView(APIView):   
-
-#     def get(self, request):
-#         name = request.query_params.get('name', '')
-#         address = request.query_params.get('address', '')
-
-#         doctors = Doctor.objects.filter(name__icontains=name, address__icontains=address).order_by('id')
-#         hospitals = Hospital.objects.filter(name__icontains=name, address__icontains=address).order_by('id')
-        
-#         doctors_address = Doctor.objects.filter(address__icontains=address)
-
-#         doctor_ids_with_address = doctors_address.values_list('id', flat=True)
-
-#         specialtys = Specialty.objects.filter(specialtydoctor__doctor__id__in=doctor_ids_with_address, name__icontains=name).distinct().order_by('id')
-#         services = Service.objects.filter(servicedoctor__doctor__id__in=doctor_ids_with_address, name__icontains=name).distinct().order_by('id')
-
-#         Xdoctor_serializer = DoctorSerializer(doctors, many=True)
-#         Xhospital_serializer = HospitalSerializer(hospitals, many=True)
-#         Xspecialty_serializer = SpecialtySerializer(specialtys, many=True)
-#         Xservices_serializer = ServiceSerializer(services, many=True)
-        
-#         count_doctors = len(Xdoctor_serializer.data)
-#         count_hospitals = len(Xhospital_serializer.data)
-#         count_specialtys = len(Xspecialty_serializer.data)
-#         count_services = len(Xservices_serializer.data)
-
-
-#         paginator = CustomPagination2()
-#         paginated_doctors = paginator.paginate_queryset(doctors, request)
-#         doctor_serializer = DoctorSerializer(paginated_doctors, many=True)
-        
-#         paginated_hospitals = paginator.paginate_queryset(hospitals, request)
-#         hospital_serializer = HospitalSerializer(paginated_hospitals, many=True)
-        
-#         paginated_specialtys = paginator.paginate_queryset(specialtys, request)
-#         specialty_serializer = SpecialtySerializer(paginated_specialtys, many=True)
-        
-#         paginated_services = paginator.paginate_queryset(services, request)
-#         services_serializer = ServiceSerializer(paginated_services, many=True)
-        
-
-
-#         response_data = {
-#             'total_page':paginator.page.paginator.num_pages,
-#             'count_doctors': count_doctors,
-#             'count_hospitals': count_hospitals,
-#             'count_specialtys': count_specialtys,
-#             'count_services': count_services,
-#             'doctors': doctor_serializer.data,
-#             'hospitals': hospital_serializer.data,
-#             'specialtys': specialty_serializer.data,
-#             'services': services_serializer.data,
-            
-#         }
-
-#         return paginator.get_paginated_response(response_data)
-
-# @authentication_classes([])
-# class SearchDoctorAPIView(APIView):
-    
-#     def get(self, request): 
-#         name = request.query_params.get('name', '')
-#         address = request.query_params.get('address', '')
-#         specialty = request.query_params.get('specialty', '')
-#         service = request.query_params.get('service', '')
-#         hospital = request.query_params.get('hospital', '')
-
-#         # Bỏ điều kiện lọc cho specialty nếu specialty không được cung cấp
-#         specialty_filter = {} if not specialty else {'specialtydoctor__specialty__id': specialty}
-
-#         # Bỏ điều kiện lọc cho service nếu service không được cung cấp
-#         service_filter = {} if not service else {'servicedoctor__service__id': service}
-
-#         # Bỏ điều kiện lọc cho hospital nếu hospital không được cung cấp
-#         hospital_filter = {} if not hospital else {'hospital__id': hospital}
-
-#         # Combine all filters
-#         filters = {
-#             'name__icontains': name,
-#             'address__icontains': address,
-#             **specialty_filter,
-#             **service_filter,
-#             **hospital_filter,
-#         }
-
-#         doctors = Doctor.objects.filter(**filters).order_by('id')
-
-#         doctor_serializer = DoctorSerializer(doctors, many=True)
-#         count_doctors = len(doctor_serializer.data)
-        
-#         doctors_ss = Doctor.objects.filter(        
-#             **specialty_filter,
-#             **service_filter,
-#         )
-
-#         doctor_specialty_ids = doctors_ss.values_list('hospital__id', flat=True).distinct().order_by('id')
-
-#         hospitals = Hospital.objects.filter(
-#             name__icontains=name,
-#             address__icontains=address,
-#             id__in=doctor_specialty_ids,
-#         ).order_by('id')
-#         hospital_serializer = HospitalSerializer(hospitals, many=True)
-#         count_hospitals = len(hospital_serializer.data)
-
-#         paginator = CustomPagination()
-
-#         paginated_doctors = paginator.paginate_queryset(doctors, request)
-#         doctor_serializer = DoctorSerializer(paginated_doctors, many=True)
-
-#         paginated_hospitals = paginator.paginate_queryset(hospitals, request)
-#         hospital_serializer = HospitalSerializer(paginated_hospitals, many=True)
-
-
-#         response_data = {
-#             'total_page':paginator.page.paginator.num_pages,
-#             'total_doctors': count_doctors,
-#             'total_hospitals': count_hospitals,    
-#             'doctors': doctor_serializer.data,
-#             'hospitals': hospital_serializer.data,
-#         }
-#         return paginator.get_paginated_response(response_data)
-        
-#         # return Response(response_data, status=status.HTTP_200_OK)
 
 
 @authentication_classes([])
@@ -901,17 +631,21 @@ from authentication.backends import JWTAuthentication
 # create GetAppointment
 @permission_classes([IsUserPermission])
 class GetAppointment(GenericAPIView):
-    serializer_class = AppointmentSerializer
+    serializer_class = GetAppointmentSerializer
     def get(self, request, *args, **kwargs):
-        print(1)
+        print(111)
         # get user by account
-        user = User.objects.get(account=request.account)
+        try:
+            user = User.objects.get(account=request.account)
+        except User.DoesNotExist:
+            return Response({'detail': 'user is not exist'}, status=status.HTTP_400_BAD_REQUEST)
         # get appointment by user
         appointment = Appointment.objects.filter(user=user)
         # chia appointment thanh 3 list là appointment sắp đến, appointment chưa xác nhận, appointment đã xác nhận
         appointment_coming = []
         appointment_not_confirm = []
         appointment_confirmed = []
+        appointment_cancel = []
         for i in appointment:
             if i.date > datetime.date.today():
                 appointment_coming.append(i)
@@ -919,16 +653,23 @@ class GetAppointment(GenericAPIView):
                 appointment_not_confirm.append(i)
             if i.status == 1:
                 appointment_confirmed.append(i)
+            if i.status == 2:
+                appointment_cancel.append(i)
+
         print(appointment_coming)
         print(appointment_not_confirm)
         print(appointment_confirmed)
+        print(appointment_cancel)
+
         serializer_data = {
             'coming': AppointmentSerializer(appointment_coming, many=True).data,
             'not_confirm': AppointmentSerializer(appointment_not_confirm, many=True).data,
             'confirmed': AppointmentSerializer(appointment_confirmed, many=True).data,
+            'cancel': AppointmentSerializer(appointment_cancel, many=True).data
         }
         print(2)
-        serializer = GetAppointmentSerializer(serializer_data)
+        serializer = GetAppointmentSerializer(data=serializer_data)
+        serializer.is_valid()
         print(3)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
@@ -938,8 +679,14 @@ class RatingAppointment(GenericAPIView):
     serializer_class = AppointmentSerializer
     def post(self, request, *args, **kwargs):
         # kiểm tra user có phải là user của appointment   
-        user = User.objects.get(account=request.account)
-        appointment = Appointment.objects.get(id=kwargs['pk'])
+        try:
+            user = User.objects.get(account=request.account)
+        except User.DoesNotExist:
+            return Response({'detail': 'user is not exist'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            appointment = Appointment.objects.get(id=kwargs['pk'])
+        except Appointment.DoesNotExist:
+            return Response({'detail': 'appointment is not exist'}, status=status.HTTP_400_BAD_REQUEST)
         if (user != appointment.user):
             return Response({'detail': 'user is not user of appointment'}, status=status.HTTP_400_BAD_REQUEST)
         # update rating cho bác sĩ
@@ -985,5 +732,4 @@ class StatusAppointment(GenericAPIView):
         appointment.save()
         serializer = AppointmentSerializer(appointment)
         return Response(serializer.data, status=status.HTTP_200_OK)
-
 

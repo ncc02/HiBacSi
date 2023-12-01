@@ -40,7 +40,6 @@ urlpatterns = [
     path('search_hospital/', HospitalSearchView.as_view()),
     path('search_specialty/', SpecialtySearchView.as_view()),
     path('search_service/', ServiceSearchView.as_view()),
-    path('schedulerdoctor/', GetSchedulerDoctor.as_view(), name='getscheduler'),
     path('search_blog/', BlogSearchView.as_view(), name='search_blog'),
     path('accounts/<int:pk>/change_password', UserPasswordUpdateAPIView.as_view(), name='user-change-password'),
     
