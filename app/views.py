@@ -84,6 +84,11 @@ class AdminViewSet(viewsets.ModelViewSet):
     serializer_class = AdminSerializer
 
 @authentication_classes([])
+class BlogCRUDViewSet(viewsets.ModelViewSet):
+    queryset = Blog.objects.all()
+    serializer_class = BlogCRUDSerializer
+
+@authentication_classes([])
 class BlogViewSet(viewsets.ModelViewSet):
     queryset = Blog.objects.all()
     serializer_class = BlogSerializer
@@ -357,17 +362,21 @@ class BlogSearchView(generics.ListAPIView):
     def get_queryset(self):
         name = self.request.query_params.get('name', None)
         id_category = self.request.query_params.get('id_category', None)
+        id_doctor = self.request.query_params.get('id_doctor', None)
 
         queryset = Blog.objects.all()
-
-        # Sử dụng select_related để trả về thông tin của bác sĩ và danh mục cùng với blog
-        queryset = queryset.select_related('id_doctor', 'id_category')
-
+        
         if name:
             queryset = queryset.filter(title__icontains=name)
 
         if id_category:
             queryset = queryset.filter(id_category=id_category)
+
+        if id_doctor:
+            queryset = queryset.filter(id_doctor=id_doctor)
+
+        # Sử dụng select_related để trả về thông tin của bác sĩ và danh mục cùng với blog
+        queryset = queryset.select_related('id_doctor', 'id_category')
 
         return queryset
     

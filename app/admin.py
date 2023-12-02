@@ -22,3 +22,5 @@ admin.site.register(Tool)
 
 
 admin.site.register(Test)
+admin.site.register(Blog)
+admin.site.register(Category)

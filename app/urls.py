@@ -19,7 +19,7 @@ router.register(r'servicedoctors', ServiceDoctorViewSet)
 router.register(r'tools', ToolViewSet)
 router.register(r'blogs', BlogViewSet)
 router.register(r'categories', CategoryViewSet)
-
+router.register(r'blogcruds', BlogCRUDViewSet)
 
 urlpatterns = [
     path('token/', include('mytoken.urls')),
@@ -28,8 +28,6 @@ urlpatterns = [
     path('booking/', include('booking.urls')),
     #Account update ko can thiet vi da co CRUD
     # path('account_update/<int:pk>/', AccountUpdateAPIView.as_view(), name='account-update'),
-
-    
 
     path('search_doctor666/', DoctorSearch666View.as_view()),
     path('search_hospital666/', HospitalSearch666View.as_view()),
@@ -49,7 +47,5 @@ urlpatterns = [
     path('statusappointment/<int:pk>/', StatusAppointment.as_view(), name='statusappointment'),
 
     path('test/', TestAPIView.as_view(), name='test'),
-
-
     path('', include(router.urls)),
 ]

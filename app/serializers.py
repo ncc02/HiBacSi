@@ -174,12 +174,16 @@ class CategorySerializer(serializers.ModelSerializer ):
         fields = '__all__'
 
 class BlogSerializer(serializers.ModelSerializer ):
-    id_doctor = DoctorSerializer()  # Sử dụng DoctorSerializer để bao gồm thông tin về bác sĩ
-    id_category = CategorySerializer()
+    id_doctor = DoctorSerializer(required=False)
+    id_category = CategorySerializer(required=False)
     class Meta:
         model = Blog
         fields = '__all__'
 
+class BlogCRUDSerializer(serializers.ModelSerializer ):
+    class Meta:
+        model = Blog
+        fields = '__all__'
 
 class TestSerializer(serializers.ModelSerializer ):
     class Meta:
