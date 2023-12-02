@@ -105,6 +105,12 @@ class ScheduleSerializer(serializers.ModelSerializer):
         model = Schedule
         fields = '__all__'
 
+class ScheduleByDoctorSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    days_of_week = serializers.CharField()
+    start = serializers.TimeField()
+    end = serializers.TimeField()
+
 class SchedulerDoctorSerializer(serializers.ModelSerializer):
     schedule = ScheduleSerializer()
     doctor = DoctorSerializer()    
@@ -115,9 +121,9 @@ class SchedulerDoctorSerializer(serializers.ModelSerializer):
         # fields = ['id', 'doctor_id', 'schedule_id', 'schedule', 'doctor']
 
 class GetSchedulerSerializer(serializers.Serializer):
-    morning = ScheduleSerializer(many=True)
-    afternoon = ScheduleSerializer(many=True)
-    evening = ScheduleSerializer(many=True)
+    morning = ScheduleByDoctorSerializer(many=True)
+    afternoon = ScheduleByDoctorSerializer(many=True)
+    evening = ScheduleByDoctorSerializer(many=True)
 
 class AppointmentSerializer(serializers.ModelSerializer):
     schedule_doctor = SchedulerDoctorSerializer()
