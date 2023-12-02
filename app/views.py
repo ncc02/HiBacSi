@@ -235,18 +235,19 @@ class GetSchedulerDoctor(GenericAPIView):
         evening = []
         for i in schedule_doctor:
             if i.schedule.end.hour < 12:
-                morning.append(i.schedule)
+                morning.append({'id': i.schedule.id, 'days_of_week': i.schedule.days_of_week, 'start': i.schedule.start, 'end': i.schedule.end})
             if i.schedule.start.hour >= 12 and i.schedule.end.hour < 18:
-                afternoon.append(i.schedule)
+                afternoon.append({'id': i.schedule.id, 'days_of_week': i.schedule.days_of_week, 'start': i.schedule.start, 'end': i.schedule.end})
             if i.schedule.start.hour >= 18:
-                evening.append(i.schedule)
+                evening.append({'id': i.schedule.id, 'days_of_week': i.schedule.days_of_week, 'start': i.schedule.start, 'end': i.schedule.end})
+        
         print(morning)
         print(afternoon)
         print(evening)
         serializer_data = {
-            'morning': ScheduleSerializer(morning, many=True).data,
-            'afternoon': ScheduleSerializer(afternoon, many=True).data,
-            'evening': ScheduleSerializer(evening, many=True).data,
+            'morning': ScheduleByDoctorSerializer(morning, many=True).data,
+            'afternoon': ScheduleByDoctorSerializer(afternoon, many=True).data,
+            'evening': ScheduleByDoctorSerializer(evening, many=True).data,
         }
         serializer = GetSchedulerSerializer(data=serializer_data)
         serializer.is_valid()
