@@ -11,6 +11,7 @@ class Account(models.Model):
     role = models.CharField(max_length=10, default='user')
     refresh_token = models.CharField(max_length=255, null=True, blank=True)
     avatar = models.ImageField(upload_to='media/', null=True)
+    status = models.IntegerField(default=0)  # 0: còn hoạt động, 1: đã bị khóa
     def __str__(self):
         return self.username
 

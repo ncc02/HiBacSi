@@ -275,6 +275,13 @@ class AppointmentViewSet(viewsets.ModelViewSet):
             # Đảm bảo rằng param tồn tại trong model Appointment nếu không thì báo lỗi
             if param in [field.name for field in Appointment._meta.get_fields()]:
                 filter_kwargs[param] = value
+
+        # Check if 'doctor_id' is in the query parameters
+        doctor_id = params.get('doctor_id', None)
+        if doctor_id:
+            # Filter appointments based on the associated doctor's id
+            queryset = queryset.filter(schedule_doctor__doctor__id=doctor_id)
+            
         # Xây dựng truy vấn động bằng cách sử dụng **kwargs
         queryset = queryset.filter(**filter_kwargs)
         return queryset
