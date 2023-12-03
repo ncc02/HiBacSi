@@ -24,11 +24,10 @@ router.register(r'blogcruds', BlogCRUDViewSet)
 urlpatterns = [
     path('token/', include('mytoken.urls')),
     path('auth/', include('authentication.urls')),
-    path('user/', include('user.urls')),
     path('booking/', include('booking.urls')),
     #Account update ko can thiet vi da co CRUD
     # path('account_update/<int:pk>/', AccountUpdateAPIView.as_view(), name='account-update'),
-
+    # search
     path('search_doctor666/', DoctorSearch666View.as_view()),
     path('search_hospital666/', HospitalSearch666View.as_view()),
     path('search_specialty666/', SpecialtySearch666View.as_view()),
@@ -39,12 +38,55 @@ urlpatterns = [
     path('search_specialty/', SpecialtySearchView.as_view()),
     path('search_service/', ServiceSearchView.as_view()),
     path('search_blog/', BlogSearchView.as_view(), name='search_blog'),
+
+    # account
     path('accounts/<int:pk>/change_password', UserPasswordUpdateAPIView.as_view(), name='user-change-password'),
     
+    # user
+    path('deleteusers/', DeleteUsers.as_view(), name='deleteusers'),
+
+    # admin
+    path('deleteadmins/', DeleteAdmins.as_view(), name='deleteadmins'),
+
+    # doctor
+    path('deletedoctors/', DeleteDoctors.as_view(), name='deletedoctors'),
+
+    # hospital
+    path('deletehospitals/', DeleteHospitals.as_view(), name='deletehospitals'),
+
+    # specialty
+    path('deletespecialties/', DeleteSpecialties.as_view(), name='deletespecialties'),
+
+    # service
+    path('deleteservices/', DeleteServices.as_view(), name='deleteservices'),
+
+    # schedule
+    path('deleteschedules/', DeleteSchedules.as_view(), name='deleteschedules'),
+
+    # servicedoctor
+    path('deleteservicedoctors/', DeleteServiceDoctors.as_view(), name='deleteservicedoctors'),
+
+    # specialtydoctor
+    path('deletespecialtydoctors/', DeleteSpecialtyDoctors.as_view(), name='deletespecialtydoctors'),
+
+    # scheduledoctor
     path('getschedulerdoctor/', GetSchedulerDoctor.as_view(), name='getscheduler'),
+    path('addschedulerdoctors/', AddSchedulerDoctors.as_view(), name='addschedulers'),
+    path('deleteschedulerdoctors/', DeleteSchedulerDoctors.as_view(), name='deleteschedulers'),
+
+    # appointment
     path('appointmentsbyuser/', GetAppointment.as_view(), name='getappointment'),
     path('ratingappointment/<int:pk>/', RatingAppointment.as_view(), name='ratingappointment'),
     path('statusappointment/<int:pk>/', StatusAppointment.as_view(), name='statusappointment'),
+
+    # tool
+    path('deletetools/', DeleteTools.as_view(), name='deletetools'),
+
+    # blog
+    path('deleteblogs/', DeleteBlogs.as_view(), name='deleteblogs'),
+
+    # category
+    path('deletecategories/', DeleteCategories.as_view(), name='deletecategories'),
 
     path('test/', TestAPIView.as_view(), name='test'),
     path('', include(router.urls)),

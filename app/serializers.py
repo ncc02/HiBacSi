@@ -127,10 +127,10 @@ class GetSchedulerSerializer(serializers.Serializer):
 
 class AppointmentSerializer(serializers.ModelSerializer):
     schedule_doctor = SchedulerDoctorSerializer()
-    # user = UserSerializer()
+    user = UserSerializer()
     class Meta:
         model = Appointment
-        fields = ['id', 'user_id', 'schedule_doctor', 'date', 'time', 'status', 'rating']
+        fields = ['id', 'user', 'schedule_doctor', 'date', 'time', 'status', 'rating']
 
 
 class GetAppointmentSerializer(serializers.Serializer):
