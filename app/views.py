@@ -236,6 +236,12 @@ class SpecialtyViewSet(viewsets.ModelViewSet):
     queryset = Specialty.objects.all()
     serializer_class = SpecialtySerializer
 
+    def create(self, request, *args, **kwargs):
+        data = request.data.copy()
+        if (Specialty.objects.filter(name=data['name']).exists()):
+            return Response({'detail': 'specialty is exist'}, status=status.HTTP_400_BAD_REQUEST)
+        return super().create(request, *args, **kwargs)
+
     def destroy(self, request, *args, **kwargs):
         # lấy specialty
         specialty = self.get_object()
@@ -406,6 +412,47 @@ class ServiceDoctorViewSet(viewsets.ModelViewSet):
     queryset = ServiceDoctor.objects.all()
     serializer_class = ServiceDoctorSerializer
 
+    # create
+    def create(self, request, *args, **kwargs):
+        data = request.data.copy()
+        try:
+            service_id = data['service_id']
+        except KeyError:
+            return Response({'detail': 'key "service_id" is require'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            doctor_id = data['doctor_id']
+        except KeyError:
+            return Response({'detail': 'key "doctor_id" is require'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            data['service'] = Service.objects.get(id = service_id)
+        except:
+            return Response({'detail': 'no find service has id = ' + str(service_id)}, status=status.HTTP_400_BAD_REQUEST)    
+        try:
+            data['doctor'] = Doctor.objects.get(id = doctor_id)
+        except:
+            return Response({'detail': 'no find doctor has id = ' + str(doctor_id)}, status=status.HTTP_400_BAD_REQUEST)
+        if (ServiceDoctor.objects.filter(service=data['service'], doctor=data['doctor']).exists()):
+            return Response({'detail': 'service_doctor is exist'}, status=status.HTTP_400_BAD_REQUEST)
+        service_doctor = ServiceDoctor.objects.create(service=data['service'], doctor=data['doctor'])
+        service_doctor.save()
+        serializer = ServiceDoctorSerializer(service_doctor)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+    def get_queryset(self):
+        queryset = self.queryset
+        params = self.request.query_params
+        # Tạo một từ điển kwargs để xây dựng truy vấn động
+        filter_kwargs = {}
+        # Lặp qua tất cả các tham số truy vấn và thêm chúng vào từ điển kwargs
+        for param, value in params.items():
+            # Đảm bảo rằng param tồn tại trong model ServiceDoctor nếu không thì báo lỗi
+            if param in [field.name for field in ServiceDoctor._meta.get_fields()]:
+                filter_kwargs[param] = value
+        # Xây dựng truy vấn động bằng cách sử dụng **kwargs
+        queryset = queryset.filter(**filter_kwargs)
+
+        return queryset
+
 @authentication_classes([])
 class SpecialtyDoctorViewSet(viewsets.ModelViewSet):
     queryset = SpecialtyDoctor.objects.all()
@@ -414,10 +461,21 @@ class SpecialtyDoctorViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         data = request.data.copy()
         try:
-            data['specialty'] = Specialty.objects.get(id = data['specialty_id'])
-            data['doctor'] = Doctor.objects.get(id = data['doctor_id'])
+            specialty_id = data['specialty_id']
+        except KeyError:
+            return Response({'detail': 'key "specialty_id" is require'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            doctor_id = data['doctor_id']
+        except KeyError:
+            return Response({'detail': 'key "doctor_id" is require'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            data['specialty'] = Specialty.objects.get(id = specialty_id)
         except:
-            return Response({'detail': 'no find specialty or doctor'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'no find specialty has id = ' + str(specialty_id)}, status=status.HTTP_400_BAD_REQUEST)
+        try: 
+            data['doctor'] = Doctor.objects.get(id = doctor_id)
+        except:
+            return Response({'detail': 'no find doctor has id = ' + str(doctor_id)}, status=status.HTTP_400_BAD_REQUEST)
         if (SpecialtyDoctor.objects.filter(specialty=data['specialty'], doctor=data['doctor']).exists()):
             return Response({'detail': 'specialty_doctor is exist'}, status=status.HTTP_400_BAD_REQUEST)
         specialty_doctor = SpecialtyDoctor.objects.create(specialty=data['specialty'], doctor=data['doctor'])
