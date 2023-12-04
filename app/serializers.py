@@ -82,7 +82,7 @@ class HospitalSerializer(serializers.ModelSerializer):
 
 
 class DoctorSerializer(serializers.ModelSerializer):
-    # account = AccountSerializer()
+    account = AccountSerializer()
     hospital = HospitalSerializer()
     specialties = SpecialtyDoctorSerializer(many=True, source='specialtydoctor_set')
     services = ServiceDoctorSerializer(many=True, source='servicedoctor_set')
