@@ -121,6 +121,24 @@ class BlogViewSet(viewsets.ModelViewSet):
     queryset = Blog.objects.all()
     serializer_class = BlogSerializer
 
+    def get_queryset(self):
+        queryset = self.queryset
+        params = self.request.query_params
+
+        # Tạo một từ điển kwargs để xây dựng truy vấn động
+        filter_kwargs = {}
+
+        # Lặp qua tất cả các tham số truy vấn và thêm chúng vào từ điển kwargs
+        for param, value in params.items():
+            # Đảm bảo rằng param tồn tại trong model Blog nếu không thì báo lỗi
+            if param in [field.name for field in Blog._meta.get_fields()]:
+                filter_kwargs[param] = value
+        
+        # Xây dựng truy vấn động bằng cách sử dụng **kwargs
+        queryset = queryset.filter(**filter_kwargs)
+
+        return queryset
+
     # def list(self, request, *args, **kwargs): -> DEO CAN
     #     response = super().list(request, *args, **kwargs)
 
@@ -815,9 +833,6 @@ class UserPasswordUpdateAPIView(generics.UpdateAPIView): #Ten User nhung that ra
         else:
             return Response({'message': 'Incorrect Old Password', 'oldpassword':str(oldpassword),'hash_oldpassword':str(hash_password(oldpassword)),'instance_passwrod': str(instance.password)}, status=status.HTTP_400_BAD_REQUEST)
         
-from hibacsi.pagination import CustomLimitOffsetPagination
-from authentication.backends import JWTAuthentication
-
 # create GetAppointment
 @permission_classes([IsUserPermission])
 class GetAppointment(GenericAPIView):
@@ -837,13 +852,14 @@ class GetAppointment(GenericAPIView):
         appointment_confirmed = []
         appointment_cancel = []
         for i in appointment:
-            if i.date > datetime.date.today():
-                appointment_coming.append(i)
             if i.status == 0:
                 appointment_not_confirm.append(i)
-            if i.status == 1:
-                appointment_confirmed.append(i)
-            if i.status == 2:
+            elif i.status == 1:
+                if i.date < datetime.date.today() or (i.date == datetime.date.today() and i.schedule_doctor.schedule.end < datetime.datetime.now().time()):
+                    appointment_confirmed.append(i)
+                else:
+                    appointment_coming.append(i)
+            elif i.status == 2:
                 appointment_cancel.append(i)
 
         print(appointment_coming)
@@ -906,12 +922,18 @@ class StatusAppointment(GenericAPIView):
     def post(self, request, *args, **kwargs):
         try:
             doctor = Doctor.objects.get(account=request.account)
-            appointment = Appointment.objects.get(id=kwargs['pk'])
+            try:
+                appointment = Appointment.objects.get(id=kwargs['pk'])
+            except Appointment.DoesNotExist:
+                return Response({'detail': 'appointment is not exist'}, status=status.HTTP_400_BAD_REQUEST)
             if (doctor != appointment.schedule_doctor.doctor):
                 return Response({'detail': 'doctor is not doctor of appointment'}, status=status.HTTP_400_BAD_REQUEST)
         except Doctor.DoesNotExist:
             user = User.objects.get(account=request.account)
-            appointment = Appointment.objects.get(id=kwargs['pk'])
+            try:
+                appointment = Appointment.objects.get(id=kwargs['pk'])
+            except Appointment.DoesNotExist:
+                return Response({'detail': 'appointment is not exist'}, status=status.HTTP_400_BAD_REQUEST)
             if (user != appointment.user):
                 return Response({'detail': 'user is not user of appointment'}, status=status.HTTP_400_BAD_REQUEST)
         # update status cho appointment
@@ -920,7 +942,7 @@ class StatusAppointment(GenericAPIView):
         except KeyError:
             return Response({'detail': 'status is not exist'}, status=status.HTTP_400_BAD_REQUEST)
         appointment.save()
-        serializer = AppointmentSerializer(appointment)
+        serializer = AppointmentSerializer(appointment) 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 # user
