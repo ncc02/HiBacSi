@@ -18,20 +18,20 @@ class AccountSerializer(serializers.ModelSerializer):
     #     return data
 
 class UserSerializer(serializers.ModelSerializer):
-    # account = AccountSerializer()
+    account = AccountSerializer()
     class Meta:
         model = User
         fields = '__all__'
 
 class AdminSerializer(serializers.ModelSerializer):
-    # account = AccountSerializer()
+    account = AccountSerializer()
     class Meta:
         model = Admin
         fields = '__all__'
 
 
 class HospitalSerializer(serializers.ModelSerializer):
-    # account = AccountSerializer()
+    account = AccountSerializer()
     class Meta:
         model = Hospital
         fields = '__all__'
