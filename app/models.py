@@ -169,6 +169,7 @@ class Category(models.Model):
         return self.name    
 
 class Blog(models.Model):
+    picture = models.ImageField(upload_to='media/', null=True)
     id_doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, related_name='blogs')
     id_category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='blogs')
     title = models.CharField(max_length=255)
