@@ -1,39 +1,75 @@
+import os
+import json
+import datetime
+import app.utils as utils
+from rest_framework import status
+from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
-from .serializers import *
-import json
-from .models import Account
-from app.permissions import IsAdminPermission, IsDoctorPermission, IsHospitalPermission, IsUserPermission
-import app.utils as utils
-from rest_framework.decorators import authentication_classes, permission_classes
 from rest_framework.generics import GenericAPIView
-from hibacsi.pagination import CustomLimitOffsetPagination
+from rest_framework.decorators import action, authentication_classes, permission_classes
+from .serializers import *
+from .models import Account
+# from authentication.backends import JWTAuthentication
+# from hibacsi.pagination import CustomLimitOffsetPagination
+from app.permissions import IsAdminPermission, IsDoctorPermission, IsHospitalPermission, IsUserPermission
+# JWTAuthentication
 from authentication.backends import JWTAuthentication
-from rest_framework.decorators import action
-# from django.conf import settings
-# import jwt
-import app.utils as utils
-import os
 
-import datetime
+
+
+
+# các hàm hỗ trợ
 def print_log(message):
     log_file_path = os.path.join(settings.BASE_DIR, 'log.txt')
     with open(log_file_path, 'a') as log_file:
         log_file.write(str(datetime.datetime.now()) + '\n' + message + '\n\n')
     pass
 
-from rest_framework import viewsets
-
-
+# account
 @authentication_classes([])
 class AccountViewSet(viewsets.ModelViewSet):
     queryset = Account.objects.all()
     serializer_class = AccountSerializer
 
+    # read all
+    def list(self, request, *args, **kwargs):
+        print("list account")
+        JWTAuthentication.authenticate(self, request)
+        # check permission
+        if (IsAdminPermission.has_permission(self, request, self)):
+            return super().list(request, *args, **kwargs)
+        return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        
+    # update
+    def update(self, request, *args, **kwargs):
+        print("update account")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin and User has id = kwargs['pk']
+        if ((not IsAdminPermission.has_permission(self, request, self)) and (not IsUserPermission.has_permission(self, request, self))):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        elif (IsUserPermission.has_permission(self, request, self)):
+            if (str(request.account.id) != str(kwargs['pk'])):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().update(request, *args, **kwargs)
+    
+    # retrieve
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+    
+
     def partial_update(self, request, *args, **kwargs):
+        print("partial_update account")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin and User has id = kwargs['pk']
+        if ((not IsAdminPermission.has_permission(self, request, self)) and (not IsUserPermission.has_permission(self, request, self))):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        elif (IsUserPermission.has_permission(self, request, self)):
+            if (str(request.account.id) != str(kwargs['pk'])):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+            
         instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer = self.get_serializer(instance, data=request.data, partial=True) 
         serializer.is_valid(raise_exception=True)
 
         print_log("partial_update")
@@ -60,12 +96,66 @@ class AccountViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         return Response({'detail': 'Method not allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
+
+# user
 @authentication_classes([])
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
+    # create
+    def create(self, request, *args, **kwargs):
+        print("create user")
+        return Response({'detail': 'Method not allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    
+    # read all
+    def list(self, request, *args, **kwargs):
+        print("list user")
+        JWTAuthentication.authenticate(self, request)
+        # check permission
+        if (not IsAdminPermission.has_permission(self, request, self)): 
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().list(request, *args, **kwargs)
+
+    # retrieve
+    def retrieve(self, request, *args, **kwargs):
+        print("retrieve user")
+        return super().retrieve(request, *args, **kwargs)
+    
+    # update
+    def update(self, request, *args, **kwargs):
+        print("update user")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin and User has id = kwargs['pk']
+        if ((not IsAdminPermission.has_permission(self, request, self)) and (not IsUserPermission.has_permission(self, request, self))):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        elif (IsUserPermission.has_permission(self, request, self)):
+            try:
+                user = User.objects.get(account=request.account)
+            except:
+                return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+            if (str(user.id) != str(kwargs['pk'])):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().update(request, *args, **kwargs)
+
+    # partial_update
+    def partial_update(self, request, *args, **kwargs):
+        print("partial_update user")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin and User has id = kwargs['pk']
+        if ((not IsAdminPermission.has_permission(self, request, self)) and (not IsUserPermission.has_permission(self, request, self))):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        elif (IsUserPermission.has_permission(self, request, self)):
+            try:
+                user = User.objects.get(account=request.account)
+            except:
+                return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+            if (str(user.id) != str(kwargs['pk'])):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().partial_update(request, *args, **kwargs)
+
     def get_queryset(self):
+        print("get_queryset user")
         queryset = self.queryset
         params = self.request.query_params
 
@@ -84,37 +174,147 @@ class UserViewSet(viewsets.ModelViewSet):
         return queryset
     
     def destroy(self, request, *args, **kwargs):
+        print("destroy user")
+        JWTAuthentication.authenticate(self, request)
+        if ((not IsAdminPermission.has_permission(self, request, self)) and (not IsUserPermission.has_permission(self, request, self))):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        elif (IsUserPermission.has_permission(self, request, self)):
+            try:
+                user = User.objects.get(account=request.account)
+            except:
+                return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+            if (str(user.id) != str(kwargs['pk'])):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+            else:
+                return Response({'detail': 'Method not allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
         # lấy user
         user = self.get_object()
         # lấy account
         account = Account.objects.get(id=user.account.id)
         # lấy appointment 
         appointments = Appointment.objects.filter(user=user)
-        print(account)
-        print(appointments)
         # thực hiện xoá
         appointments.delete()
         account.delete()
         return Response({'detail': 'Delete success'}, status=status.HTTP_200_OK)
 
+# admin
 @authentication_classes([]) 
 class AdminViewSet(viewsets.ModelViewSet):
     queryset = Admin.objects.all()
     serializer_class = AdminSerializer
 
-    def destroy(self, request, *args, **kwargs):
-        # lấy admin
-        admin = self.get_object()
-        # lấy account
-        account = Account.objects.get(id=admin.account.id)
-        # thực hiện xoá
-        account.delete()
-        return Response({'detail': 'Delete success'}, status=status.HTTP_200_OK)
+    # create
+    def create(self, request, *args, **kwargs):
+        print("create admin")
+        return Response({'detail': 'Method not allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
+    # read all
+    def list(self, request, *args, **kwargs):
+        print("list admin")
+        JWTAuthentication.authenticate(self, request)
+        # check permission
+        if (not IsAdminPermission.has_permission(self, request, self)): 
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().list(request, *args, **kwargs)
+    
+    # retrieve
+    def retrieve(self, request, *args, **kwargs):
+        print("retrieve admin")
+        return super().retrieve(request, *args, **kwargs)
+    
+    # update
+    def update(self, request, *args, **kwargs):
+        print("update admin")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin
+        if (not IsAdminPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        else:
+            try:
+                admin = Admin.objects.get(account=request.account)
+            except:
+                return Response({'detail': 'Admin not found'}, status=status.HTTP_404_NOT_FOUND)
+            if (str(admin.id) != str(kwargs['pk'])):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().update(request, *args, **kwargs)
+    
+    # partial_update
+    def partial_update(self, request, *args, **kwargs):
+        print("partial_update admin")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin
+        if (not IsAdminPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        else:
+            try:
+                admin = Admin.objects.get(account=request.account)
+            except:
+                return Response({'detail': 'Admin not found'}, status=status.HTTP_404_NOT_FOUND)
+            if (str(admin.id) != str(kwargs['pk'])):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().partial_update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        print("destroy admin")
+        return Response({'detail': 'Method not allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+# blogCRUD
 @authentication_classes([])
 class BlogCRUDViewSet(viewsets.ModelViewSet):
     queryset = Blog.objects.all()
     serializer_class = BlogCRUDSerializer
+
+    # create
+    def create(self, request, *args, **kwargs):
+        print("create blog")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin and Doctor
+        if ((not IsAdminPermission.has_permission(self, request, self)) and (not IsDoctorPermission.has_permission(self, request, self))):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().create(request, *args, **kwargs)
+     
+    # update
+    def update(self, request, *args, **kwargs):
+        print("update blog")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin
+        if ((not IsAdminPermission.has_permission(self, request, self)) and (not IsDoctorPermission.has_permission(self, request, self))):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        elif (IsDoctorPermission.has_permission(self, request, self)):
+            try:
+                doctor = Doctor.objects.get(account=request.account)
+            except:
+                return Response({'detail': 'Doctor not found'}, status=status.HTTP_404_NOT_FOUND)
+            # check doctor is author of blog 
+            try:
+                blog = Blog.objects.get(id=kwargs['pk'])
+            except:
+                return Response({'detail': 'Blog not found'}, status=status.HTTP_404_NOT_FOUND)
+            if (str(blog.id_doctor.id) != str(doctor.id)):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().update(request, *args, **kwargs)
+    
+    # partial_update
+    def partial_update(self, request, *args, **kwargs):
+        print("partial_update blog")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin
+        if ((not IsAdminPermission.has_permission(self, request, self)) and (not IsDoctorPermission.has_permission(self, request, self))):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        elif (IsDoctorPermission.has_permission(self, request, self)):
+            try:
+                doctor = Doctor.objects.get(account=request.account)
+            except:
+                return Response({'detail': 'Doctor not found'}, status=status.HTTP_404_NOT_FOUND)
+            # check doctor is author of blog 
+            try:
+                blog = Blog.objects.get(id=kwargs['pk'])
+            except:
+                return Response({'detail': 'Blog not found'}, status=status.HTTP_404_NOT_FOUND)
+            if (str(blog.id_doctor.id) != str(doctor.id)):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().partial_update(request, *args, **kwargs)
 
 @authentication_classes([])
 class BlogViewSet(viewsets.ModelViewSet):
@@ -162,6 +362,65 @@ class BlogViewSet(viewsets.ModelViewSet):
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+
+    def create(self, request, *args, **kwargs):
+        print("create category")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin
+        if (not IsAdminPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        data = request.data.copy()
+        try: 
+            name = data['name']
+        except KeyError:
+            return Response({'detail': 'key "name" is require'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if (Category.objects.filter(name=name).exists()):
+            return Response({'detail': 'category is exist'}, status=status.HTTP_400_BAD_REQUEST)
+        return super().create(request, *args, **kwargs)
+    
+    # update
+    def update(self, request, *args, **kwargs):
+        print("update category")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin
+        if (not IsAdminPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().update(request, *args, **kwargs)
+    
+    # partial_update
+    def partial_update(self, request, *args, **kwargs):
+        print("partial_update category")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin
+        if (not IsAdminPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().partial_update(request, *args, **kwargs)
+    
+    def destroy(self, request, *args, **kwargs):
+        print("destroy category")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin
+        if (not IsAdminPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
+
+@permission_classes([IsAdminPermission])
+class DeleteCategories(GenericAPIView):
+    def post(self, request, *args, **kwargs):
+        category_ids = request.data.get('category_ids', [])
+        if (category_ids == []):
+            return Response({'detail': 'key "category_ids" is require'}, status=status.HTTP_400_BAD_REQUEST)
+        # Xác định các đối tượng cần xoá
+        for i in category_ids:
+            try:
+                Category.objects.get(id = i)
+            except:
+                return Response({'detail': 'no find category has id = '+str(i)}, status=status.HTTP_400_BAD_REQUEST)
+        categories_to_delete = Category.objects.filter(id__in=category_ids)
+        # Thực hiện xoá đối tượng
+        categories_to_delete.delete()
+        return Response({'message': 'Xoá thành công'}, status=status.HTTP_204_NO_CONTENT)
 
 @authentication_classes([])
 class DoctorViewSet(viewsets.ModelViewSet):
@@ -946,7 +1205,8 @@ class StatusAppointment(GenericAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 # user
-@authentication_classes([])
+# @authentication_classes([])
+@permission_classes([IsAdminPermission])
 class DeleteUsers(GenericAPIView):
     def post(self, request, *args, **kwargs):
         user_ids = request.data.get('user_ids', [])
@@ -977,22 +1237,24 @@ class DeleteUsers(GenericAPIView):
 @authentication_classes([])
 class DeleteAdmins(GenericAPIView):
     def post(self, request, *args, **kwargs):
-        admin_ids = request.data.get('admin_ids', [])
-        if (admin_ids == []):
-            return Response({'detail': 'key "admin_ids" is require'}, status=status.HTTP_400_BAD_REQUEST)
-        # Xác định các đối tượng cần xoá
-        for i in admin_ids:
-            try:
-                Admin.objects.get(id = i)
-            except:
-                return Response({'detail': 'no find admin has id = '+str(i)}, status=status.HTTP_400_BAD_REQUEST)
-        admins_to_delete = Admin.objects.filter(id__in=admin_ids)
-        # lấy các account của admins_to_delete
-        accounts_to_delete = Account.objects.filter(id__in=admins_to_delete.values('account'))
-        # Thực hiện xoá đối tượng
-        accounts_to_delete.delete()
-        admins_to_delete.delete()
-        return Response({'message': 'Xoá thành công'}, status=status.HTTP_204_NO_CONTENT)
+        # not allow
+        return Response({'detail': 'Method not allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        # admin_ids = request.data.get('admin_ids', [])
+        # if (admin_ids == []):
+        #     return Response({'detail': 'key "admin_ids" is require'}, status=status.HTTP_400_BAD_REQUEST)
+        # # Xác định các đối tượng cần xoá
+        # for i in admin_ids:
+        #     try:
+        #         Admin.objects.get(id = i)
+        #     except:
+        #         return Response({'detail': 'no find admin has id = '+str(i)}, status=status.HTTP_400_BAD_REQUEST)
+        # admins_to_delete = Admin.objects.filter(id__in=admin_ids)
+        # # lấy các account của admins_to_delete
+        # accounts_to_delete = Account.objects.filter(id__in=admins_to_delete.values('account'))
+        # # Thực hiện xoá đối tượng
+        # accounts_to_delete.delete()
+        # admins_to_delete.delete()
+        # return Response({'message': 'Xoá thành công'}, status=status.HTTP_204_NO_CONTENT)
 
 @authentication_classes([])
 class DeleteHospitals(GenericAPIView):
@@ -1276,22 +1538,6 @@ class DeleteTools(GenericAPIView):
         tools_to_delete.delete()
         return Response({'message': 'Xoá thành công'}, status=status.HTTP_204_NO_CONTENT)
     
-@authentication_classes([])
-class DeleteCategories(GenericAPIView):
-    def post(self, request, *args, **kwargs):
-        category_ids = request.data.get('category_ids', [])
-        if (category_ids == []):
-            return Response({'detail': 'key "category_ids" is require'}, status=status.HTTP_400_BAD_REQUEST)
-        # Xác định các đối tượng cần xoá
-        for i in category_ids:
-            try:
-                Category.objects.get(id = i)
-            except:
-                return Response({'detail': 'no find category has id = '+str(i)}, status=status.HTTP_400_BAD_REQUEST)
-        categories_to_delete = Category.objects.filter(id__in=category_ids)
-        # Thực hiện xoá đối tượng
-        categories_to_delete.delete()
-        return Response({'message': 'Xoá thành công'}, status=status.HTTP_204_NO_CONTENT)
     
 @authentication_classes([])
 class DeleteBlogs(GenericAPIView):

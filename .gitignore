@@ -3,3 +3,4 @@ env/
 .venv/
 README.md
 __pycache__/
+db.sqlite3
