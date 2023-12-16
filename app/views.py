@@ -1,39 +1,75 @@
+import os
+import json
+import datetime
+import app.utils as utils
+from rest_framework import status
+from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
-from .serializers import *
-import json
-from .models import Account
-from app.permissions import IsAdminPermission, IsDoctorPermission, IsHospitalPermission, IsUserPermission
-import app.utils as utils
-from rest_framework.decorators import authentication_classes, permission_classes
 from rest_framework.generics import GenericAPIView
-from hibacsi.pagination import CustomLimitOffsetPagination
+from rest_framework.decorators import action, authentication_classes, permission_classes
+from .serializers import *
+from .models import Account
+# from authentication.backends import JWTAuthentication
+# from hibacsi.pagination import CustomLimitOffsetPagination
+from app.permissions import IsAdminPermission, IsDoctorPermission, IsHospitalPermission, IsUserPermission
+# JWTAuthentication
 from authentication.backends import JWTAuthentication
-from rest_framework.decorators import action
-# from django.conf import settings
-# import jwt
-import app.utils as utils
-import os
 
-import datetime
+
+
+
+# các hàm hỗ trợ
 def print_log(message):
     log_file_path = os.path.join(settings.BASE_DIR, 'log.txt')
     with open(log_file_path, 'a') as log_file:
         log_file.write(str(datetime.datetime.now()) + '\n' + message + '\n\n')
     pass
 
-from rest_framework import viewsets
-
-
+# account
 @authentication_classes([])
 class AccountViewSet(viewsets.ModelViewSet):
     queryset = Account.objects.all()
     serializer_class = AccountSerializer
 
+    # read all
+    def list(self, request, *args, **kwargs):
+        print("list account")
+        JWTAuthentication.authenticate(self, request)
+        # check permission
+        if (IsAdminPermission.has_permission(self, request, self)):
+            return super().list(request, *args, **kwargs)
+        return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        
+    # update
+    def update(self, request, *args, **kwargs):
+        print("update account")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin and User has id = kwargs['pk']
+        if ((not IsAdminPermission.has_permission(self, request, self)) and (not IsUserPermission.has_permission(self, request, self))):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        elif (IsUserPermission.has_permission(self, request, self)):
+            if (str(request.account.id) != str(kwargs['pk'])):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().update(request, *args, **kwargs)
+    
+    # retrieve
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+    
+
     def partial_update(self, request, *args, **kwargs):
+        print("partial_update account")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin and User has id = kwargs['pk']
+        if ((not IsAdminPermission.has_permission(self, request, self)) and (not IsUserPermission.has_permission(self, request, self))):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        elif (IsUserPermission.has_permission(self, request, self)):
+            if (str(request.account.id) != str(kwargs['pk'])):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+            
         instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer = self.get_serializer(instance, data=request.data, partial=True) 
         serializer.is_valid(raise_exception=True)
 
         print_log("partial_update")
@@ -60,12 +96,62 @@ class AccountViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         return Response({'detail': 'Method not allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
+
+# user
 @authentication_classes([])
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
+    # create
+    def create(self, request, *args, **kwargs):
+        print("create user")
+        return Response({'detail': 'Method not allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    
+    # read all
+    def list(self, request, *args, **kwargs):
+        print("list user")
+        return super().list(request, *args, **kwargs)
+
+    # retrieve
+    def retrieve(self, request, *args, **kwargs):
+        print("retrieve user")
+        return super().retrieve(request, *args, **kwargs)
+    
+    # update
+    def update(self, request, *args, **kwargs):
+        print("update user")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin and User has id = kwargs['pk']
+        if ((not IsAdminPermission.has_permission(self, request, self)) and (not IsUserPermission.has_permission(self, request, self))):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        elif (IsUserPermission.has_permission(self, request, self)):
+            try:
+                user = User.objects.get(account=request.account)
+            except:
+                return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+            if (str(user.id) != str(kwargs['pk'])):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().update(request, *args, **kwargs)
+
+    # partial_update
+    def partial_update(self, request, *args, **kwargs):
+        print("partial_update user")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin and User has id = kwargs['pk']
+        if ((not IsAdminPermission.has_permission(self, request, self)) and (not IsUserPermission.has_permission(self, request, self))):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        elif (IsUserPermission.has_permission(self, request, self)):
+            try:
+                user = User.objects.get(account=request.account)
+            except:
+                return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+            if (str(user.id) != str(kwargs['pk'])):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().partial_update(request, *args, **kwargs)
+
     def get_queryset(self):
+        print("get_queryset user")
         queryset = self.queryset
         params = self.request.query_params
 
@@ -84,37 +170,199 @@ class UserViewSet(viewsets.ModelViewSet):
         return queryset
     
     def destroy(self, request, *args, **kwargs):
+        print("destroy user")
+        JWTAuthentication.authenticate(self, request)
+        if ((not IsAdminPermission.has_permission(self, request, self)) and (not IsUserPermission.has_permission(self, request, self))):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        elif (IsUserPermission.has_permission(self, request, self)):
+            try:
+                user = User.objects.get(account=request.account)
+            except:
+                return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+            if (str(user.id) != str(kwargs['pk'])):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+            else:
+                return Response({'detail': 'Method not allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
         # lấy user
         user = self.get_object()
         # lấy account
         account = Account.objects.get(id=user.account.id)
         # lấy appointment 
         appointments = Appointment.objects.filter(user=user)
-        print(account)
-        print(appointments)
         # thực hiện xoá
         appointments.delete()
         account.delete()
         return Response({'detail': 'Delete success'}, status=status.HTTP_200_OK)
 
+# delete some users
+@permission_classes([IsAdminPermission])
+class DeleteUsers(GenericAPIView):
+    def post(self, request, *args, **kwargs):
+        user_ids = request.data.get('user_ids', [])
+        if (user_ids == []):
+            return Response({'detail': 'key "user_ids" is require'}, status=status.HTTP_400_BAD_REQUEST)
+        # Xác định các đối tượng cần xoá
+        for i in user_ids:
+            try:
+                User.objects.get(id = i)
+            except:
+                return Response({'detail': 'no find user has id = '+str(i)}, status=status.HTTP_400_BAD_REQUEST)
+        users_to_delete = User.objects.filter(id__in=user_ids)
+        # lấy các account của users_to_delete
+        accounts_to_delete = Account.objects.filter(id__in=users_to_delete.values('account'))
+        # lấy các appointment của users_to_delete
+        appointments_to_delete = Appointment.objects.filter(user__in=users_to_delete)
+
+        print(users_to_delete)
+        print(accounts_to_delete)
+        print(appointments_to_delete)
+
+        # Thực hiện xoá đối tượng
+        appointments_to_delete.delete()
+        accounts_to_delete.delete()
+        users_to_delete.delete()
+        return Response({'message': 'Xoá thành công'}, status=status.HTTP_204_NO_CONTENT)
+
+# admin
 @authentication_classes([]) 
 class AdminViewSet(viewsets.ModelViewSet):
     queryset = Admin.objects.all()
     serializer_class = AdminSerializer
 
-    def destroy(self, request, *args, **kwargs):
-        # lấy admin
-        admin = self.get_object()
-        # lấy account
-        account = Account.objects.get(id=admin.account.id)
-        # thực hiện xoá
-        account.delete()
-        return Response({'detail': 'Delete success'}, status=status.HTTP_200_OK)
+    # create
+    def create(self, request, *args, **kwargs):
+        print("create admin")
+        return Response({'detail': 'Method not allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
+    # read all
+    def list(self, request, *args, **kwargs):
+        print("list admin")
+        JWTAuthentication.authenticate(self, request)
+        # check permission
+        if (not IsAdminPermission.has_permission(self, request, self)): 
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().list(request, *args, **kwargs)
+    
+    # retrieve
+    def retrieve(self, request, *args, **kwargs):
+        print("retrieve admin")
+        return super().retrieve(request, *args, **kwargs)
+    
+    # update
+    def update(self, request, *args, **kwargs):
+        print("update admin")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin
+        if (not IsAdminPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        else:
+            try:
+                admin = Admin.objects.get(account=request.account)
+            except:
+                return Response({'detail': 'Admin not found'}, status=status.HTTP_404_NOT_FOUND)
+            if (str(admin.id) != str(kwargs['pk'])):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().update(request, *args, **kwargs)
+    
+    # partial_update
+    def partial_update(self, request, *args, **kwargs):
+        print("partial_update admin")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin
+        if (not IsAdminPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        else:
+            try:
+                admin = Admin.objects.get(account=request.account)
+            except:
+                return Response({'detail': 'Admin not found'}, status=status.HTTP_404_NOT_FOUND)
+            if (str(admin.id) != str(kwargs['pk'])):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().partial_update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        print("destroy admin")
+        return Response({'detail': 'Method not allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+# delete some admins
+@authentication_classes([])
+class DeleteAdmins(GenericAPIView):
+    def post(self, request, *args, **kwargs):
+        # not allow
+        return Response({'detail': 'Method not allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        # admin_ids = request.data.get('admin_ids', [])
+        # if (admin_ids == []):
+        #     return Response({'detail': 'key "admin_ids" is require'}, status=status.HTTP_400_BAD_REQUEST)
+        # # Xác định các đối tượng cần xoá
+        # for i in admin_ids:
+        #     try:
+        #         Admin.objects.get(id = i)
+        #     except:
+        #         return Response({'detail': 'no find admin has id = '+str(i)}, status=status.HTTP_400_BAD_REQUEST)
+        # admins_to_delete = Admin.objects.filter(id__in=admin_ids)
+        # # lấy các account của admins_to_delete
+        # accounts_to_delete = Account.objects.filter(id__in=admins_to_delete.values('account'))
+        # # Thực hiện xoá đối tượng
+        # accounts_to_delete.delete()
+        # admins_to_delete.delete()
+        # return Response({'message': 'Xoá thành công'}, status=status.HTTP_204_NO_CONTENT)
+
+# blogCRUD
 @authentication_classes([])
 class BlogCRUDViewSet(viewsets.ModelViewSet):
     queryset = Blog.objects.all()
     serializer_class = BlogCRUDSerializer
+
+    # create
+    def create(self, request, *args, **kwargs):
+        print("create blog")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin and Doctor
+        if ((not IsAdminPermission.has_permission(self, request, self)) and (not IsDoctorPermission.has_permission(self, request, self))):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().create(request, *args, **kwargs)
+     
+    # update
+    def update(self, request, *args, **kwargs):
+        print("update blog")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin
+        if ((not IsAdminPermission.has_permission(self, request, self)) and (not IsDoctorPermission.has_permission(self, request, self))):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        elif (IsDoctorPermission.has_permission(self, request, self)):
+            try:
+                doctor = Doctor.objects.get(account=request.account)
+            except:
+                return Response({'detail': 'Doctor not found'}, status=status.HTTP_404_NOT_FOUND)
+            # check doctor is author of blog 
+            try:
+                blog = Blog.objects.get(id=kwargs['pk'])
+            except:
+                return Response({'detail': 'Blog not found'}, status=status.HTTP_404_NOT_FOUND)
+            if (str(blog.id_doctor.id) != str(doctor.id)):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().update(request, *args, **kwargs)
+    
+    # partial_update
+    def partial_update(self, request, *args, **kwargs):
+        print("partial_update blog")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin
+        if ((not IsAdminPermission.has_permission(self, request, self)) and (not IsDoctorPermission.has_permission(self, request, self))):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        elif (IsDoctorPermission.has_permission(self, request, self)):
+            try:
+                doctor = Doctor.objects.get(account=request.account)
+            except:
+                return Response({'detail': 'Doctor not found'}, status=status.HTTP_404_NOT_FOUND)
+            # check doctor is author of blog 
+            try:
+                blog = Blog.objects.get(id=kwargs['pk'])
+            except:
+                return Response({'detail': 'Blog not found'}, status=status.HTTP_404_NOT_FOUND)
+            if (str(blog.id_doctor.id) != str(doctor.id)):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().partial_update(request, *args, **kwargs)
 
 @authentication_classes([])
 class BlogViewSet(viewsets.ModelViewSet):
@@ -159,14 +407,165 @@ class BlogViewSet(viewsets.ModelViewSet):
     #     return response
 
 @authentication_classes([])
+class DeleteBlogs(GenericAPIView):
+    def post(self, request, *args, **kwargs):
+        blog_ids = request.data.get('blog_ids', [])
+        if (blog_ids == []):
+            return Response({'detail': 'key "blog_ids" is require'}, status=status.HTTP_400_BAD_REQUEST)
+        # Xác định các đối tượng cần xoá
+        for i in blog_ids:
+            try:
+                Blog.objects.get(id = i)
+            except:
+                return Response({'detail': 'no find blog has id = '+str(i)}, status=status.HTTP_400_BAD_REQUEST)
+        blogs_to_delete = Blog.objects.filter(id__in=blog_ids)
+        # Thực hiện xoá đối tượng
+        blogs_to_delete.delete()
+        return Response({'message': 'Xoá thành công'}, status=status.HTTP_204_NO_CONTENT)
+
+
+# category
+@authentication_classes([])
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
+    def create(self, request, *args, **kwargs):
+        print("create category")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin
+        if (not IsAdminPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        data = request.data.copy()
+        try: 
+            name = data['name']
+        except KeyError:
+            return Response({'detail': 'key "name" is require'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if (Category.objects.filter(name=name).exists()):
+            return Response({'detail': 'category is exist'}, status=status.HTTP_400_BAD_REQUEST)
+        return super().create(request, *args, **kwargs)
+    
+    # update
+    def update(self, request, *args, **kwargs):
+        print("update category")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin
+        if (not IsAdminPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().update(request, *args, **kwargs)
+    
+    # partial_update
+    def partial_update(self, request, *args, **kwargs):
+        print("partial_update category")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin
+        if (not IsAdminPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().partial_update(request, *args, **kwargs)
+    
+    def destroy(self, request, *args, **kwargs):
+        print("destroy category")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin
+        if (not IsAdminPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
+
+@permission_classes([IsAdminPermission])
+class DeleteCategories(GenericAPIView):
+    def post(self, request, *args, **kwargs):
+        category_ids = request.data.get('category_ids', [])
+        if (category_ids == []):
+            return Response({'detail': 'key "category_ids" is require'}, status=status.HTTP_400_BAD_REQUEST)
+        # Xác định các đối tượng cần xoá
+        for i in category_ids:
+            try:
+                Category.objects.get(id = i)
+            except:
+                return Response({'detail': 'no find category has id = '+str(i)}, status=status.HTTP_400_BAD_REQUEST)
+        categories_to_delete = Category.objects.filter(id__in=category_ids)
+        # Thực hiện xoá đối tượng
+        categories_to_delete.delete()
+        return Response({'message': 'Xoá thành công'}, status=status.HTTP_204_NO_CONTENT)
+
+
+# doctor 
 @authentication_classes([])
 class DoctorViewSet(viewsets.ModelViewSet):
     queryset = Doctor.objects.all()
     serializer_class = DoctorSerializer
+
+    # create
+    def create(self, request, *args, **kwargs):
+        print("create doctor")
+        return Response({'detail': 'Method not allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    
+    # read all
+    def list(self, request, *args, **kwargs):
+        print("list doctor")
+        return super().list(request, *args, **kwargs)
+    
+    # retrieve
+    def retrieve(self, request, *args, **kwargs):
+        print("retrieve doctor")
+        return super().retrieve(request, *args, **kwargs)
+    
+    # update
+    def update(self, request, *args, **kwargs):
+        print("update doctor")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin, Hospital of Doctor and Doctor has id = kwargs['pk']
+        if ((not IsAdminPermission.has_permission(self, request, self)) and (not IsHospitalPermission.has_permission(self, request, self)) and (not IsDoctorPermission.has_permission(self, request, self))):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        elif (IsHospitalPermission.has_permission(self, request, self)):
+            try:
+                hospital = Hospital.objects.get(account=request.account)
+            except:
+                return Response({'detail': 'Hospital not found'}, status=status.HTTP_404_NOT_FOUND)
+            # check doctor is in hospital
+            try:
+                doctor = Doctor.objects.get(id=kwargs['pk'])
+            except:
+                return Response({'detail': 'Doctor not found'}, status=status.HTTP_404_NOT_FOUND)
+            if (str(doctor.hospital.id) != str(hospital.id)):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        elif (IsDoctorPermission.has_permission(self, request, self)):
+            try:
+                doctor = Doctor.objects.get(account=request.account)
+            except:
+                return Response({'detail': 'Doctor not found'}, status=status.HTTP_404_NOT_FOUND)
+            if (str(doctor.id) != str(kwargs['pk'])):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().update(request, *args, **kwargs)
+    
+    # partial_update
+    def partial_update(self, request, *args, **kwargs):
+        print("partial_update doctor")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin, Hospital of Doctor and Doctor has id = kwargs['pk']
+        if ((not IsAdminPermission.has_permission(self, request, self)) and (not IsHospitalPermission.has_permission(self, request, self)) and (not IsDoctorPermission.has_permission(self, request, self))):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        elif (IsHospitalPermission.has_permission(self, request, self)):
+            try:
+                hospital = Hospital.objects.get(account=request.account)
+            except:
+                return Response({'detail': 'Hospital not found'}, status=status.HTTP_404_NOT_FOUND)
+            # check doctor is in hospital
+            try:
+                doctor = Doctor.objects.get(id=kwargs['pk'])
+            except:
+                return Response({'detail': 'Doctor not found'}, status=status.HTTP_404_NOT_FOUND)
+            if (str(doctor.hospital.id) != str(hospital.id)):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        elif (IsDoctorPermission.has_permission(self, request, self)):
+            try:
+                doctor = Doctor.objects.get(account=request.account)
+            except:
+                return Response({'detail': 'Doctor not found'}, status=status.HTTP_404_NOT_FOUND)
+            if (str(doctor.id) != str(kwargs['pk'])):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().partial_update(request, *args, **kwargs)
 
     def get_queryset(self):
         queryset = self.queryset
@@ -187,6 +586,30 @@ class DoctorViewSet(viewsets.ModelViewSet):
         return queryset
     
     def destroy(self, request, *args, **kwargs):
+        print("destroy doctor")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin, Hospital of Doctor and Doctor has id = kwargs['pk']
+        if ((not IsAdminPermission.has_permission(self, request, self)) and (not IsHospitalPermission.has_permission(self, request, self)) and (not IsDoctorPermission.has_permission(self, request, self))):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        elif (IsHospitalPermission.has_permission(self, request, self)):
+            try:
+                hospital = Hospital.objects.get(account=request.account)
+            except:
+                return Response({'detail': 'Hospital not found'}, status=status.HTTP_404_NOT_FOUND)
+            # check doctor is in hospital
+            try:
+                doctor = Doctor.objects.get(id=kwargs['pk'])
+            except:
+                return Response({'detail': 'Doctor not found'}, status=status.HTTP_404_NOT_FOUND)
+            if (str(doctor.hospital.id) != str(hospital.id)):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        elif (IsDoctorPermission.has_permission(self, request, self)):
+            try:
+                doctor = Doctor.objects.get(account=request.account)
+            except:
+                return Response({'detail': 'Doctor not found'}, status=status.HTTP_404_NOT_FOUND)
+            if (str(doctor.id) != str(kwargs['pk'])):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
         # lấy doctor
         doctor = self.get_object()
         # lấy account
@@ -211,30 +634,139 @@ class DoctorViewSet(viewsets.ModelViewSet):
         specialtydoctors.delete()
         account.delete()
         return Response({'detail': 'Delete success'}, status=status.HTTP_200_OK)
+    
+# delete some doctors
+class DeleteDoctors(GenericAPIView):
+    def post(self, request, *args, **kwargs):
+        print("delete some doctors")
+        # lấy doctor_ids
+        doctor_ids = request.data.get('doctor_ids', [])
+        if (doctor_ids == []):
+            return Response({'detail': 'key "doctor_ids" is require'}, status=status.HTTP_400_BAD_REQUEST)
+        # check permission Admin, Hospital of Doctor
+        if ((not IsAdminPermission.has_permission(self, request, self)) and (not IsHospitalPermission.has_permission(self, request, self))):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        elif (IsHospitalPermission.has_permission(self, request, self)):
+            try:
+                hospital = Hospital.objects.get(account=request.account)
+            except:
+                return Response({'detail': 'Hospital not found'}, status=status.HTTP_404_NOT_FOUND)
+            # check doctor is in hospital
+            for i in doctor_ids:
+                try:
+                    doctor = Doctor.objects.get(id=i)
+                except:
+                    return Response({'detail': 'Doctor not found'}, status=status.HTTP_404_NOT_FOUND)
+                if (str(doctor.hospital.id) != str(hospital.id)):
+                    return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        # Xác định các đối tượng cần xoá
+        for i in doctor_ids:
+            try:
+                Doctor.objects.get(id = i)
+            except:
+                return Response({'detail': 'no find doctor has id = '+str(i)}, status=status.HTTP_400_BAD_REQUEST)
+        doctors_to_delete = Doctor.objects.filter(id__in=doctor_ids)
+        # lấy các account của doctors_to_delete
+        accounts_to_delete = Account.objects.filter(id__in=doctors_to_delete.values('account'))
+        # lấy các specialty_doctor của doctors_to_delete
+        specialty_doctors_to_delete = SpecialtyDoctor.objects.filter(doctor__in=doctors_to_delete)
+        # lấy các service_doctor của doctors_to_delete
+        service_doctors_to_delete = ServiceDoctor.objects.filter(doctor__in=doctors_to_delete)
+        # lấy các schedule của doctors_to_delete
+        schedules_to_delete = Schedule.objects.filter(schedule_doctor__doctor__in=doctors_to_delete)
+        # lấy các schedule_doctor của doctors_to_delete
+        schedule_doctors_to_delete = Scheduler_Doctor.objects.filter(doctor__in=doctors_to_delete)
+        # lấy các appointment của doctors_to_delete
+        appointments_to_delete = Appointment.objects.filter(schedule_doctor__doctor__in=doctors_to_delete)
+        # lấy các blog của doctors_to_delete
+        blogs_to_delete = Blog.objects.filter(id_doctor__in=doctors_to_delete)
+        # Thực hiện xoá đối tượng
+        appointments_to_delete.delete()
+        schedule_doctors_to_delete.delete()
+        schedules_to_delete.delete()
+        service_doctors_to_delete.delete()
+        specialty_doctors_to_delete.delete()
+        blogs_to_delete.delete()
+        accounts_to_delete.delete()
+        doctors_to_delete.delete()
+        return Response({'message': 'Xoá thành công'}, status=status.HTTP_204_NO_CONTENT)
 
 
+# hospital
 @authentication_classes([]) 
 class HospitalViewSet(viewsets.ModelViewSet):
     queryset = Hospital.objects.all()
     serializer_class = HospitalSerializer
-    # def list(self, request, *args, **kwargs):
-    #     hospital = Hospital.objects.all()
+
+    # create
+    def create(self, request, *args, **kwargs):
+        print("create hospital")
+        return Response({'detail': 'Method not allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    
+    # read all
+    def list(self, request, *args, **kwargs):
+        print("list hospital")
+        return super().list(request, *args, **kwargs)
+    
+    # retrieve
+    def retrieve(self, request, *args, **kwargs):
+        print("retrieve hospital")
+        return super().retrieve(request, *args, **kwargs)
+    
+    # update
+    def update(self, request, *args, **kwargs):
+        print("update hospital")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin and Hospital has id = kwargs['pk']
+        if ((not IsAdminPermission.has_permission(self, request, self)) and (not IsHospitalPermission.has_permission(self, request, self))):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        elif (IsHospitalPermission.has_permission(self, request, self)):
+            try:
+                hospital = Hospital.objects.get(account=request.account)
+            except:
+                return Response({'detail': 'Hospital not found'}, status=status.HTTP_404_NOT_FOUND)
+            if (str(hospital.id) != str(kwargs['pk'])):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().update(request, *args, **kwargs)
+    
+    # partial_update
+    def partial_update(self, request, *args, **kwargs):
+        print("partial_update hospital")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin and Hospital has id = kwargs['pk']
+        if ((not IsAdminPermission.has_permission(self, request, self)) and (not IsHospitalPermission.has_permission(self, request, self))):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        elif (IsHospitalPermission.has_permission(self, request, self)):
+            try:
+                hospital = Hospital.objects.get(account=request.account)
+            except:
+                return Response({'detail': 'Hospital not found'}, status=status.HTTP_404_NOT_FOUND)
+            if (str(hospital.id) != str(kwargs['pk'])):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().partial_update(request, *args, **kwargs)
+
+    # def read(self, request, *args, **kwargs):
+    #     hospital = Hospital.objects.get(id = kwargs['pk'])
+    #     # serializer = HospitalSerializer(hospital)
     #     content = {
     #         **HospitalSerializer(hospital).data,
     #         'account': AccountSerializer(hospital.account).data
     #     }
     #     return Response(content, status=status.HTTP_200_OK)
-
-    def read(self, request, *args, **kwargs):
-        hospital = Hospital.objects.get(id = kwargs['pk'])
-        # serializer = HospitalSerializer(hospital)
-        content = {
-            **HospitalSerializer(hospital).data,
-            'account': AccountSerializer(hospital.account).data
-        }
-        return Response(content, status=status.HTTP_200_OK)
     
     def destroy(self, request, *args, **kwargs):
+        print("destroy hospital")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin and Hospital has id = kwargs['pk']
+        if ((not IsAdminPermission.has_permission(self, request, self)) and (not IsHospitalPermission.has_permission(self, request, self))):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        elif (IsHospitalPermission.has_permission(self, request, self)):
+            try:
+                hospital = Hospital.objects.get(account=request.account)
+            except:
+                return Response({'detail': 'Hospital not found'}, status=status.HTTP_404_NOT_FOUND)
+            if (str(hospital.id) != str(kwargs['pk'])):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
         # lấy hospital
         hospital = self.get_object()
         # lấy account
@@ -249,18 +781,105 @@ class HospitalViewSet(viewsets.ModelViewSet):
         account.delete()
         return Response({'detail': 'Delete success'}, status=status.HTTP_200_OK)
 
+# delete some hospitals 
+class DeleteHospitals(GenericAPIView):
+    def post(self, request, *args, **kwargs):
+        print("delete some hospitals")
+        # check permission Admin
+        if (not IsAdminPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        # lấy hospital_ids
+        hospital_ids = request.data.get('hospital_ids', [])
+        if (hospital_ids == []):
+            return Response({'detail': 'key "hospital_ids" is require'}, status=status.HTTP_400_BAD_REQUEST)
+        # Xác định các đối tượng cần xoá
+        for i in hospital_ids:
+            try:
+                Hospital.objects.get(id = i)
+            except:
+                return Response({'detail': 'no find hospital has id = '+str(i)}, status=status.HTTP_400_BAD_REQUEST)
+        hospitals_to_delete = Hospital.objects.filter(id__in=hospital_ids)
+        # lấy các account của hospitals_to_delete
+        accounts_to_delete = Account.objects.filter(id__in=hospitals_to_delete.values('account'))
+        # lấy các doctor của hospitals_to_delete
+        doctors_to_delete = Doctor.objects.filter(hospital__in=hospitals_to_delete)
+        # lấy các specialty_doctor của hospitals_to_delete
+        specialty_doctors_to_delete = SpecialtyDoctor.objects.filter(doctor__in=doctors_to_delete)
+        # lấy các service_doctor của hospitals_to_delete
+        service_doctors_to_delete = ServiceDoctor.objects.filter(doctor__in=doctors_to_delete)
+        # lấy các schedule của hospitals_to_delete
+        schedules_to_delete = Schedule.objects.filter(schedule_doctor__doctor__in=doctors_to_delete)
+        # lấy các schedule_doctor của hospitals_to_delete
+        schedule_doctors_to_delete = Scheduler_Doctor.objects.filter(doctor__in=doctors_to_delete)
+        # lấy các appointment của hospitals_to_delete
+        appointments_to_delete = Appointment.objects.filter(schedule_doctor__doctor__in=doctors_to_delete)
+        # lấy các blog của hospitals_to_delete
+        blogs_to_delete = Blog.objects.filter(id_hospital__in=hospitals_to_delete)
+        # Thực hiện xoá đối tượng
+        appointments_to_delete.delete()
+        schedule_doctors_to_delete.delete()
+        schedules_to_delete.delete()
+        service_doctors_to_delete.delete()
+        specialty_doctors_to_delete.delete()
+        doctors_to_delete.delete()
+        blogs_to_delete.delete()
+        accounts_to_delete.delete()
+        hospitals_to_delete.delete()
+        return Response({'message': 'Xoá thành công'}, status=status.HTTP_204_NO_CONTENT)
+
+# specialty
 @authentication_classes([])
 class SpecialtyViewSet(viewsets.ModelViewSet):
     queryset = Specialty.objects.all()
     serializer_class = SpecialtySerializer
 
     def create(self, request, *args, **kwargs):
+        print("create specialty")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin
+        if (not IsAdminPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
         data = request.data.copy()
         if (Specialty.objects.filter(name=data['name']).exists()):
             return Response({'detail': 'specialty is exist'}, status=status.HTTP_400_BAD_REQUEST)
         return super().create(request, *args, **kwargs)
+    
+    # read all
+    def list(self, request, *args, **kwargs):
+        print("list specialty")
+        return super().list(request, *args, **kwargs)
+    
+    # retrieve
+    def retrieve(self, request, *args, **kwargs):
+        print("retrieve specialty")
+        return super().retrieve(request, *args, **kwargs)
+    
+    # update
+    def update(self, request, *args, **kwargs):
+        print("update specialty")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin
+        if (not IsAdminPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+
+        return super().update(request, *args, **kwargs)
+    
+    # partial_update
+    def partial_update(self, request, *args, **kwargs):
+        print("partial_update specialty")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin
+        if (not IsAdminPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+
+        return super().partial_update(request, *args, **kwargs)
 
     def destroy(self, request, *args, **kwargs):
+        print("destroy specialty")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin
+        if (not IsAdminPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
         # lấy specialty
         specialty = self.get_object()
         # lấy specialtydoctor
@@ -269,13 +888,85 @@ class SpecialtyViewSet(viewsets.ModelViewSet):
         # thực hiện xoá
         specialtydoctors.delete()
         return super().destroy(request, *args, **kwargs)
+    
+# delete some specialties
+class DeleteSpecialties(GenericAPIView):
+    def post(self, request, *args, **kwargs):
+        print("delete some specialties")
+        # check permission Admin
+        if (not IsAdminPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        specialty_ids = request.data.get('specialty_ids', [])
+        if (specialty_ids == []):
+            return Response({'detail': 'key "specialty_ids" is require'}, status=status.HTTP_400_BAD_REQUEST)
+        # Xác định các đối tượng cần xoá
+        for i in specialty_ids:
+            try:
+                Specialty.objects.get(id = i)
+            except:
+                return Response({'detail': 'no find specialty has id = '+str(i)}, status=status.HTTP_400_BAD_REQUEST)
+        specialties_to_delete = Specialty.objects.filter(id__in=specialty_ids)
+        # lấy các specialty_doctor của specialties_to_delete
+        specialty_doctors_to_delete = SpecialtyDoctor.objects.filter(specialty__in=specialties_to_delete)
+
+        # Thực hiện xoá đối tượng
+        specialty_doctors_to_delete.delete()
+        specialties_to_delete.delete()
+        return Response({'message': 'Xoá thành công'}, status=status.HTTP_204_NO_CONTENT)
 
 @authentication_classes([])
 class ServiceViewSet(viewsets.ModelViewSet):
     queryset = Service.objects.all()
     serializer_class = ServiceSerializer
 
+    # create
+    def create(self, request, *args, **kwargs):
+        print("create service")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin
+        if (not IsAdminPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        data = request.data.copy()
+        if (Service.objects.filter(name=data['name']).exists()):
+            return Response({'detail': 'service is exist'}, status=status.HTTP_400_BAD_REQUEST)
+        return super().create(request, *args, **kwargs)
+    
+    # read all
+    def list(self, request, *args, **kwargs):
+        print("list service")
+        return super().list(request, *args, **kwargs)
+    
+    # retrieve
+    def retrieve(self, request, *args, **kwargs):
+        print("retrieve service")
+        return super().retrieve(request, *args, **kwargs)
+    
+    # update
+    def update(self, request, *args, **kwargs):
+        print("update service")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin
+        if (not IsAdminPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+
+        return super().update(request, *args, **kwargs)
+    
+    # partial_update
+    def partial_update(self, request, *args, **kwargs):
+        print("partial_update service")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin
+        if (not IsAdminPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+
+        return super().partial_update(request, *args, **kwargs)
+
     def destroy(self, request, *args, **kwargs):
+        print("destroy service")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin
+        if (not IsAdminPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
         # lấy service
         service = self.get_object()
         # lấy servicedoctor
@@ -284,6 +975,31 @@ class ServiceViewSet(viewsets.ModelViewSet):
         # thực hiện xoá
         servicedoctors.delete()
         return super().destroy(request, *args, **kwargs)
+    
+# delete some services
+class DeleteServices(GenericAPIView):
+    def post(self, request, *args, **kwargs):
+        print("delete some services")
+        # check permission Admin
+        if (not IsAdminPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        service_ids = request.data.get('service_ids', [])
+        if (service_ids == []):
+            return Response({'detail': 'key "service_ids" is require'}, status=status.HTTP_400_BAD_REQUEST)
+        # Xác định các đối tượng cần xoá
+        for i in service_ids:
+            try:
+                Service.objects.get(id = i)
+            except:
+                return Response({'detail': 'no find service has id = '+str(i)}, status=status.HTTP_400_BAD_REQUEST)
+        services_to_delete = Service.objects.filter(id__in=service_ids)
+        # lấy các service_doctor của services_to_delete
+        service_doctors_to_delete = ServiceDoctor.objects.filter(service__in=services_to_delete)
+
+        # Thực hiện xoá đối tượng
+        service_doctors_to_delete.delete()
+        services_to_delete.delete()
+        return Response({'message': 'Xoá thành công'}, status=status.HTTP_204_NO_CONTENT)
 
 @authentication_classes([])
 class ScheduleViewSet(viewsets.ModelViewSet):
@@ -291,6 +1007,11 @@ class ScheduleViewSet(viewsets.ModelViewSet):
     serializer_class = ScheduleSerializer
 
     def create(self, request, *args, **kwargs):
+        print("create schedule")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin
+        if (not IsAdminPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
         data = request.data.copy()
         days_of_week = data['days_of_week']
         time_start = data['start']
@@ -298,8 +1019,41 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         if (Schedule.objects.filter(days_of_week=days_of_week, start=time_start, end=time_end).exists()):
             return Response({'detail': 'schedule is exist'}, status=status.HTTP_400_BAD_REQUEST)
         return super().create(request, *args, **kwargs)
+
+    # read all
+    def list(self, request, *args, **kwargs):
+        print("list schedule")
+        return super().list(request, *args, **kwargs)
+    
+    # retrieve
+    def retrieve(self, request, *args, **kwargs):
+        print("retrieve schedule")
+        return super().retrieve(request, *args, **kwargs)
+    
+    # update
+    def update(self, request, *args, **kwargs):
+        print("update schedule")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin
+        if (not IsAdminPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().update(request, *args, **kwargs)
+    
+    # partial_update
+    def partial_update(self, request, *args, **kwargs):
+        print("partial_update schedule")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin
+        if (not IsAdminPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().partial_update(request, *args, **kwargs)
     
     def destroy(self, request, *args, **kwargs):
+        print("destroy schedule")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin
+        if (not IsAdminPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
         # lấy schedule
         schedule = self.get_object()
         # lấy schedule_doctor
@@ -313,13 +1067,45 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         appointments.delete()
         schedule_doctors.delete()
         return super().destroy(request, *args, **kwargs)
+    
+# delete some schedules
+@authentication_classes([])
+class DeleteSchedules(GenericAPIView):
+    def post(self, request, *args, **kwargs):
+        print("delete some schedules")
+        # check permission Admin
+        if (not IsAdminPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        schedule_ids = request.data.get('schedule_ids', [])
+        if (schedule_ids == []):
+            return Response({'detail': 'key "schedule_ids" is require'}, status=status.HTTP_400_BAD_REQUEST)
+        # Xác định các đối tượng cần xoá
+        for i in schedule_ids:
+            try:
+                Schedule.objects.get(id = i)
+            except:
+                return Response({'detail': 'no find schedule has id = '+str(i)}, status=status.HTTP_400_BAD_REQUEST)
+        schedules_to_delete = Schedule.objects.filter(id__in=schedule_ids)
+        # lấy các schedule_doctor của schedules_to_delete
+        schedule_doctors_to_delete = Scheduler_Doctor.objects.filter(schedule__in=schedules_to_delete)
+        # lấy các appointment của schedules_to_delete
+        appointments_to_delete = Appointment.objects.filter(schedule_doctor__schedule__in=schedules_to_delete)
 
+        # Thực hiện xoá đối tượng
+        appointments_to_delete.delete()
+        schedule_doctors_to_delete.delete()
+        schedules_to_delete.delete()
+        return Response({'message': 'Xoá thành công'}, status=status.HTTP_204_NO_CONTENT)
+
+# schedule_doctor  # notenote
 @authentication_classes([])
 class SchedulerDoctorViewSet(viewsets.ModelViewSet):
     queryset = Scheduler_Doctor.objects.all()
     serializer_class = SchedulerDoctorSerializer
     # create
     def create(self, request, *args, **kwargs):
+        print("create schedule_doctor")
+        JWTAuthentication.authenticate(self, request)
         data = request.data.copy()
         print(data['doctor_id'])
         try:
@@ -327,12 +1113,62 @@ class SchedulerDoctorViewSet(viewsets.ModelViewSet):
             data['id_schedule'] = Schedule.objects.get(id = data['schedule_id'])
         except:
             return Response({'detail': 'no find doctor or schedule'}, status=status.HTTP_400_BAD_REQUEST)
+        # check permission Doctor has id = doctor_id
+        if (not IsDoctorPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        else: 
+            # lấy doctor
+            doctor = Doctor.objects.get(account=request.account)
+            # check doctor is schedule_doctor
+            if (str(doctor.id) != str(data['id_doctor'].id)):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+
         if (Scheduler_Doctor.objects.filter(doctor=data['id_doctor'], schedule=data['id_schedule']).exists()):
             return Response({'detail': 'schedule_doctor is exist'}, status=status.HTTP_400_BAD_REQUEST)
         schedule_doctor = Scheduler_Doctor.objects.create(doctor=data['id_doctor'], schedule=data['id_schedule'])
         schedule_doctor.save()
         serializer = SchedulerDoctorSerializer(schedule_doctor)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+    # read all
+    def list(self, request, *args, **kwargs):
+        print("list schedule_doctor")
+        return super().list(request, *args, **kwargs)
+    
+    # retrieve
+    def retrieve(self, request, *args, **kwargs):
+        print("retrieve schedule_doctor")
+        return super().retrieve(request, *args, **kwargs)
+    
+    # update
+    def update(self, request, *args, **kwargs):
+        print("update schedule_doctor")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Doctor of schedule_doctor
+        if (not IsDoctorPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        else:
+            # lấy doctor
+            doctor = Doctor.objects.get(account=request.account)
+            # lấy schedule_doctor
+            schedule_doctor = self.get_object()
+            # check doctor is schedule_doctor
+            if (str(doctor.id) != str(schedule_doctor.doctor.id)):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        data = request.data.copy()
+        try:
+            data['id_doctor'] = Doctor.objects.get(id = data['doctor_id'])
+            data['id_schedule'] = Schedule.objects.get(id = data['schedule_id'])
+        except:
+            return Response({'detail': 'no find doctor or schedule'}, status=status.HTTP_400_BAD_REQUEST)
+        if (Scheduler_Doctor.objects.filter(doctor=data['id_doctor'], schedule=data['id_schedule']).exists()):
+            return Response({'detail': 'schedule_doctor is exist'}, status=status.HTTP_400_BAD_REQUEST)
+        return super().update(request, *args, **kwargs)
+    
+    # partial_update
+    def partial_update(self, request, *args, **kwargs):
+        print("partial_update schedule_doctor")
+        return super().partial_update(request, *args, **kwargs)
     
     def get_queryset(self):
         queryset = self.queryset
@@ -350,6 +1186,19 @@ class SchedulerDoctorViewSet(viewsets.ModelViewSet):
         return queryset
     
     def destroy(self, request, *args, **kwargs):
+        print("destroy schedule_doctor")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Doctor of schedule_doctor
+        if (not IsDoctorPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        else:
+            # lấy doctor
+            doctor = Doctor.objects.get(account=request.account)
+            # lấy schedule_doctor
+            schedule_doctor = self.get_object()
+            # check doctor is schedule_doctor
+            if (str(doctor.id) != str(schedule_doctor.doctor.id)):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
         # lấy schedule_doctor
         schedule_doctor = self.get_object()
         # lấy appointment
@@ -359,6 +1208,93 @@ class SchedulerDoctorViewSet(viewsets.ModelViewSet):
         # thực hiện xoá
         appointments.delete()
         return super().destroy(request, *args, **kwargs)
+    
+# delete some schedule_doctors
+class DeleteSchedulerDoctors(GenericAPIView):
+    def post(self, request, *args, **kwargs):
+        print("delete some schedule_doctors")
+        scheduler_doctor_ids = request.data.get('scheduler_doctor_ids', [])
+        if (scheduler_doctor_ids == []):
+            return Response({'detail': 'key "scheduler_doctor_ids" is require'}, status=status.HTTP_400_BAD_REQUEST)        
+        # Xác định các đối tượng cần xoá
+        for i in scheduler_doctor_ids:
+            try:
+                Scheduler_Doctor.objects.get(id = i)
+            except:
+                return Response({'detail': 'no find scheduler_doctor has id = '+str(i)}, status=status.HTTP_400_BAD_REQUEST)
+        # check permission Doctor of list of schedule_doctor
+        if (not IsDoctorPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        else:
+            # lấy doctor
+            doctor = Doctor.objects.get(account=request.account)
+            # lấy schedule_doctor
+            schedule_doctors = Scheduler_Doctor.objects.filter(id__in=scheduler_doctor_ids)
+            # check doctor is schedule_doctor
+            for i in schedule_doctors:
+                if (str(doctor.id) != str(i.doctor.id)):
+                    return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        scheduler_doctors_to_delete = Scheduler_Doctor.objects.filter(id__in=scheduler_doctor_ids)
+        # lấy các appointment của scheduler_doctors_to_delete
+        appointments_to_delete = Appointment.objects.filter(schedule_doctor__in=scheduler_doctors_to_delete)
+        
+        # Thực hiện xoá đối tượng
+        appointments_to_delete.delete()
+        scheduler_doctors_to_delete.delete()
+        return Response({'message': 'Xoá thành công'}, status=status.HTTP_204_NO_CONTENT) 
+
+# add some schedule_doctors
+class AddSchedulerDoctors(GenericAPIView):
+    serializer_class = SchedulerDoctorSerializer
+    def post(self, request, *args, **kwargs):
+        print("add some schedule_doctors")
+        try: 
+            request_data = json.loads(request.body.decode('utf-8'))
+        except json.JSONDecodeError:
+            return Response({'detail': 'Invalid JSON format in the request body'}, status=status.HTTP_400_BAD_REQUEST)
+        # print(data)
+        print(request_data)
+        doctor_id = request_data.get('doctor_id', None)
+        print('doctor_id: ', doctor_id)
+        if doctor_id is None:
+            return Response({'detail': 'key "doctor_id" is require'}, status=status.HTTP_400_BAD_REQUEST)
+        # check permission Doctor has id = doctor_id
+        if (not IsDoctorPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        else: 
+            # lấy doctor
+            doctor = Doctor.objects.get(account=request.account)
+            # check doctor is schedule_doctor
+            if (str(doctor.id) != str(doctor_id)):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        schedule_ids = request_data.get('schedule_ids', [])
+        print('schedule_ids: ', schedule_ids)
+        if schedule_ids == []:
+            return Response({'detail': 'key "schedule_ids" is require'}, status=status.HTTP_400_BAD_REQUEST)
+        try: 
+            doctor = Doctor.objects.get(id = doctor_id)
+        except:
+            return Response({'detail': 'no find doctor has id = '+str(doctor_id)}, status=status.HTTP_400_BAD_REQUEST)
+        
+        data_schedule_doctor = []
+        schedule_doctors = []
+
+        for i in schedule_ids:
+            try:
+                schedule = Schedule.objects.get(id = i)
+            except:
+                return Response({'detail': 'no find schedule has id = '+str(i)}, status=status.HTTP_400_BAD_REQUEST)
+            if (Scheduler_Doctor.objects.filter(doctor=doctor, schedule=schedule).exists()):
+                return Response({'detail': 'schedule_doctor: schedule_id = ' + str(i) + ' doctor_id = '+ str(doctor_id) + ' is exist'}, status=status.HTTP_400_BAD_REQUEST)
+            data_schedule_doctor.append({'doctor': doctor, 'schedule': schedule})
+
+        for i in data_schedule_doctor:
+            schedule_doctor = Scheduler_Doctor.objects.create(doctor=i['doctor'], schedule=i['schedule'])
+            schedule_doctors.append(schedule_doctor)    
+        schedule_doctor.save()    
+
+        serializer = SchedulerDoctorSerializer(schedule_doctors, many=True)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 #create GetSchedulerDoctor
 @authentication_classes([])
@@ -398,13 +1334,54 @@ class GetSchedulerDoctor(GenericAPIView):
         print(serializer.data)
         return Response(serializer.data, status=status.HTTP_200_OK)        
 
-# @authentication_classes([])
+
+# appointment
+@authentication_classes([])
 class AppointmentViewSet(viewsets.ModelViewSet):
     queryset = Appointment.objects.all()
     serializer_class = AppointmentSerializer
 
+    # create
+    def create(self, request, *args, **kwargs):
+        print("create appointment")
+        return Response({'detail': 'Method not allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    # read all
+    def list(self, request, *args, **kwargs):
+        print("list appointment")
+        return super().list(request, *args, **kwargs)
+    
+    # retrieve
+    def retrieve(self, request, *args, **kwargs):
+        print("retrieve appointment")
+        return super().retrieve(request, *args, **kwargs)
+    
+    # update
+    def update(self, request, *args, **kwargs):
+        print("update appointment")
+        JWTAuthentication.authenticate(self, request)
+        # check permission User or Doctor of appointment
+        if ((not IsUserPermission.has_permission(self, request, self)) and (not IsDoctorPermission.has_permission(self, request, self))):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        elif (IsUserPermission.has_permission(self, request, self)):
+            # lấy user
+            user = User.objects.get(account=request.account)
+            # lấy appointment
+            appointment = self.get_object()
+            # check user is appointment
+            if (str(user.id) != str(appointment.user.id)):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        elif (IsDoctorPermission.has_permission(self, request, self)):
+            # lấy doctor
+            doctor = Doctor.objects.get(account=request.account)
+            # lấy appointment
+            appointment = self.get_object()
+            # check doctor is appointment
+            if (str(doctor.id) != str(appointment.schedule_doctor.doctor.id)):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().update(request, *args, **kwargs)
+
     def get_queryset(self):
-        print(1)
         queryset = self.queryset
         params = self.request.query_params
         # Tạo một từ điển kwargs để xây dựng truy vấn động
@@ -424,7 +1401,148 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         # Xây dựng truy vấn động bằng cách sử dụng **kwargs
         queryset = queryset.filter(**filter_kwargs)
         return queryset
+    
+    # destroy
+    def destroy(self, request, *args, **kwargs):
+        print("destroy appointment")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Admin
+        if (not IsAdminPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
 
+# delete some appointments
+@permission_classes([IsAdminPermission])
+class DeleteAppointments(GenericAPIView):
+    def post(self, request, *args, **kwargs):
+        print("delete some appointments")
+        appointment_ids = request.data.get('appointment_ids', [])
+        if (appointment_ids == []):
+            return Response({'detail': 'key "appointment_ids" is require'}, status=status.HTTP_400_BAD_REQUEST)
+        # Xác định các đối tượng cần xoá
+        for i in appointment_ids:
+            try:
+                Appointment.objects.get(id = i)
+            except:
+                return Response({'detail': 'no find appointment has id = '+str(i)}, status=status.HTTP_400_BAD_REQUEST)
+        appointments_to_delete = Appointment.objects.filter(id__in=appointment_ids)
+        # Thực hiện xoá đối tượng
+        appointments_to_delete.delete()
+        return Response({'message': 'Xoá thành công'}, status=status.HTTP_204_NO_CONTENT)
+    
+# create GetAppointment
+@permission_classes([IsUserPermission])
+class GetAppointment(GenericAPIView):
+    serializer_class = GetAppointmentSerializer
+    def get(self, request, *args, **kwargs):
+        print(111)
+        # get user by account
+        try:
+            user = User.objects.get(account=request.account)
+        except User.DoesNotExist:
+            return Response({'detail': 'user is not exist'}, status=status.HTTP_400_BAD_REQUEST)
+        # get appointment by user
+        appointment = Appointment.objects.filter(user=user)
+        # chia appointment thanh 3 list là appointment sắp đến, appointment chưa xác nhận, appointment đã xác nhận
+        appointment_coming = []
+        appointment_not_confirm = []
+        appointment_confirmed = []
+        appointment_cancel = []
+        for i in appointment:
+            if i.status == 0:
+                appointment_not_confirm.append(i)
+            elif i.status == 1:
+                if i.date < datetime.date.today() or (i.date == datetime.date.today() and i.schedule_doctor.schedule.end < datetime.datetime.now().time()):
+                    appointment_confirmed.append(i)
+                else:
+                    appointment_coming.append(i)
+            elif i.status == 2:
+                appointment_cancel.append(i)
+
+        print(appointment_coming)
+        print(appointment_not_confirm)
+        print(appointment_confirmed)
+        print(appointment_cancel)
+
+        serializer_data = {
+            'coming': AppointmentSerializer(appointment_coming, many=True).data,
+            'not_confirm': AppointmentSerializer(appointment_not_confirm, many=True).data,
+            'confirmed': AppointmentSerializer(appointment_confirmed, many=True).data,
+            'cancel': AppointmentSerializer(appointment_cancel, many=True).data
+        }
+        print(2)
+        serializer = GetAppointmentSerializer(data=serializer_data)
+        serializer.is_valid()
+        print(3)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+# create RatingAppointment
+@permission_classes([IsUserPermission])
+class RatingAppointment(GenericAPIView):
+    serializer_class = AppointmentSerializer
+    def post(self, request, *args, **kwargs):
+        # kiểm tra user có phải là user của appointment   
+        try:
+            user = User.objects.get(account=request.account)
+        except User.DoesNotExist:
+            return Response({'detail': 'user is not exist'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            appointment = Appointment.objects.get(id=kwargs['pk'])
+        except Appointment.DoesNotExist:
+            return Response({'detail': 'appointment is not exist'}, status=status.HTTP_400_BAD_REQUEST)
+        if (user != appointment.user):
+            return Response({'detail': 'user is not user of appointment'}, status=status.HTTP_400_BAD_REQUEST)
+        # update rating cho bác sĩ
+        if (appointment.rating == 0):
+            doctor = appointment.schedule_doctor.doctor
+            doctor.num_of_rating += 1
+            try:
+                rating_value = float(request.data['rating'])
+            except KeyError:
+                return Response({'detail': 'rating is not exist'}, status=status.HTTP_400_BAD_REQUEST)
+            except ValueError:
+                rating_value = 0.0
+            doctor.rating = (doctor.rating * (doctor.num_of_rating - 1) + rating_value) / doctor.num_of_rating
+            doctor.save()
+        else:
+            return Response({'detail': 'appointment has been rated'}, status=status.HTTP_400_BAD_REQUEST)
+        # update rating cho appointment
+        appointment.rating = rating_value
+        appointment.save()
+        serializer = AppointmentSerializer(appointment)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+# create StatusAppointment 
+@permission_classes([IsUserPermission | IsDoctorPermission])
+class StatusAppointment(GenericAPIView):
+    serializer_class = AppointmentSerializer
+    def post(self, request, *args, **kwargs):
+        try:
+            doctor = Doctor.objects.get(account=request.account)
+            try:
+                appointment = Appointment.objects.get(id=kwargs['pk'])
+            except Appointment.DoesNotExist:
+                return Response({'detail': 'appointment is not exist'}, status=status.HTTP_400_BAD_REQUEST)
+            if (doctor != appointment.schedule_doctor.doctor):
+                return Response({'detail': 'doctor is not doctor of appointment'}, status=status.HTTP_400_BAD_REQUEST)
+        except Doctor.DoesNotExist:
+            user = User.objects.get(account=request.account)
+            try:
+                appointment = Appointment.objects.get(id=kwargs['pk'])
+            except Appointment.DoesNotExist:
+                return Response({'detail': 'appointment is not exist'}, status=status.HTTP_400_BAD_REQUEST)
+            if (user != appointment.user):
+                return Response({'detail': 'user is not user of appointment'}, status=status.HTTP_400_BAD_REQUEST)
+        # update status cho appointment
+        try:
+            appointment.status = request.data['status']
+        except KeyError:
+            return Response({'detail': 'status is not exist'}, status=status.HTTP_400_BAD_REQUEST)
+        appointment.save()
+        serializer = AppointmentSerializer(appointment) 
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+# service doctor
 @authentication_classes([])
 class ServiceDoctorViewSet(viewsets.ModelViewSet):
     queryset = ServiceDoctor.objects.all()
@@ -432,6 +1550,66 @@ class ServiceDoctorViewSet(viewsets.ModelViewSet):
 
     # create
     def create(self, request, *args, **kwargs):
+        print("create service_doctor")
+        JWTAuthentication.authenticate(self, request)
+        data = request.data.copy()
+        try:
+            service_id = data['service_id']
+        except KeyError:
+            return Response({'detail': 'key "service_id" is require'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            doctor_id = data['doctor_id']
+        except KeyError:
+            return Response({'detail': 'key "doctor_id" is require'}, status=status.HTTP_400_BAD_REQUEST)
+        # check permission Doctor has id = doctor_id
+        if (not IsDoctorPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        else: 
+            # lấy doctor
+            doctor = Doctor.objects.get(account=request.account)
+            # check doctor is service_doctor
+            if (str(doctor.id) != str(doctor_id)):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        try:
+            data['service'] = Service.objects.get(id = service_id)
+        except:
+            return Response({'detail': 'no find service has id = ' + str(service_id)}, status=status.HTTP_400_BAD_REQUEST)    
+        try:
+            data['doctor'] = Doctor.objects.get(id = doctor_id)
+        except:
+            return Response({'detail': 'no find doctor has id = ' + str(doctor_id)}, status=status.HTTP_400_BAD_REQUEST)
+        if (ServiceDoctor.objects.filter(service=data['service'], doctor=data['doctor']).exists()):
+            return Response({'detail': 'service_doctor is exist'}, status=status.HTTP_400_BAD_REQUEST)
+        service_doctor = ServiceDoctor.objects.create(service=data['service'], doctor=data['doctor'])
+        service_doctor.save()
+        serializer = ServiceDoctorSerializer(service_doctor)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    # read all
+    def list(self, request, *args, **kwargs):
+        print("list service_doctor")
+        return super().list(request, *args, **kwargs)
+    
+    # retrieve
+    def retrieve(self, request, *args, **kwargs):
+        print("retrieve service_doctor")
+        return super().retrieve(request, *args, **kwargs)
+    
+    # update
+    def update(self, request, *args, **kwargs):
+        print("update service_doctor")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Doctor of service_doctor
+        if (not IsDoctorPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        else:
+            # lấy doctor
+            doctor = Doctor.objects.get(account=request.account)
+            # lấy service_doctor
+            service_doctor = self.get_object()
+            # check doctor is service_doctor
+            if (str(doctor.id) != str(service_doctor.doctor.id)):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
         data = request.data.copy()
         try:
             service_id = data['service_id']
@@ -451,10 +1629,29 @@ class ServiceDoctorViewSet(viewsets.ModelViewSet):
             return Response({'detail': 'no find doctor has id = ' + str(doctor_id)}, status=status.HTTP_400_BAD_REQUEST)
         if (ServiceDoctor.objects.filter(service=data['service'], doctor=data['doctor']).exists()):
             return Response({'detail': 'service_doctor is exist'}, status=status.HTTP_400_BAD_REQUEST)
-        service_doctor = ServiceDoctor.objects.create(service=data['service'], doctor=data['doctor'])
-        service_doctor.save()
-        serializer = ServiceDoctorSerializer(service_doctor)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return super().update(request, *args, **kwargs)
+    
+    # partial_update
+    def partial_update(self, request, *args, **kwargs):
+        print("partial_update service_doctor")
+        return super().partial_update(request, *args, **kwargs)
+    
+    # destroy
+    def destroy(self, request, *args, **kwargs):
+        print("destroy service_doctor")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Doctor of service_doctor
+        if (not IsDoctorPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        else:
+            # lấy doctor
+            doctor = Doctor.objects.get(account=request.account)
+            # lấy service_doctor
+            service_doctor = self.get_object()
+            # check doctor is service_doctor
+            if (str(doctor.id) != str(service_doctor.doctor.id)):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
     
     def get_queryset(self):
         queryset = self.queryset
@@ -471,12 +1668,47 @@ class ServiceDoctorViewSet(viewsets.ModelViewSet):
 
         return queryset
 
+# delete some service_doctors
+class DeleteServiceDoctors(GenericAPIView):
+    def post(self, request, *args, **kwargs):
+        print("delete some service_doctors")
+        service_doctor_ids = request.data.get('service_doctor_ids', [])
+        if (service_doctor_ids == []):
+            return Response({'detail': 'key "service_doctor_ids" is require'}, status=status.HTTP_400_BAD_REQUEST)
+        # Xác định các đối tượng cần xoá
+        for i in service_doctor_ids:
+            try:
+                ServiceDoctor.objects.get(id = i)
+            except:
+                return Response({'detail': 'no find service_doctor has id = '+str(i)}, status=status.HTTP_400_BAD_REQUEST)
+        # check permission Doctor of list of service_doctor
+        if (not IsDoctorPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        else:
+            # lấy doctor
+            doctor = Doctor.objects.get(account=request.account)
+            # lấy service_doctor
+            service_doctors = ServiceDoctor.objects.filter(id__in=service_doctor_ids)
+            # check doctor is service_doctor
+            for i in service_doctors:
+                if (str(doctor.id) != str(i.doctor.id)):
+                    return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        service_doctors_to_delete = ServiceDoctor.objects.filter(id__in=service_doctor_ids)
+        
+        # Thực hiện xoá đối tượng
+        service_doctors_to_delete.delete()
+        return Response({'message': 'Xoá thành công'}, status=status.HTTP_204_NO_CONTENT)
+
+
+# specialty doctor
 @authentication_classes([])
 class SpecialtyDoctorViewSet(viewsets.ModelViewSet):
     queryset = SpecialtyDoctor.objects.all()
     serializer_class = SpecialtyDoctorSerializer
     # create
     def create(self, request, *args, **kwargs):
+        print("create specialty_doctor")
+        JWTAuthentication.authenticate(self, request)
         data = request.data.copy()
         try:
             specialty_id = data['specialty_id']
@@ -486,6 +1718,15 @@ class SpecialtyDoctorViewSet(viewsets.ModelViewSet):
             doctor_id = data['doctor_id']
         except KeyError:
             return Response({'detail': 'key "doctor_id" is require'}, status=status.HTTP_400_BAD_REQUEST)
+        # check permission Doctor has id = doctor_id
+        if (not IsDoctorPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        else:
+            # lấy doctor
+            doctor = Doctor.objects.get(account=request.account)
+            # check doctor is specialty_doctor
+            if (str(doctor.id) != str(doctor_id)):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
         try:
             data['specialty'] = Specialty.objects.get(id = specialty_id)
         except:
@@ -501,6 +1742,74 @@ class SpecialtyDoctorViewSet(viewsets.ModelViewSet):
         serializer = SpecialtyDoctorSerializer(specialty_doctor)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
+    # read all
+    def list(self, request, *args, **kwargs):
+        print("list specialty_doctor")
+        return super().list(request, *args, **kwargs)
+    
+    # retrieve
+    def retrieve(self, request, *args, **kwargs):
+        print("retrieve specialty_doctor")
+        return super().retrieve(request, *args, **kwargs)
+    
+    # update
+    def update(self, request, *args, **kwargs):
+        print("update specialty_doctor")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Doctor of specialty_doctor
+        if (not IsDoctorPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        else:
+            # lấy doctor
+            doctor = Doctor.objects.get(account=request.account)
+            # lấy specialty_doctor
+            specialty_doctor = self.get_object()
+            # check doctor is specialty_doctor
+            if (str(doctor.id) != str(specialty_doctor.doctor.id)):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        data = request.data.copy()
+        try:
+            specialty_id = data['specialty_id']
+        except KeyError:
+            return Response({'detail': 'key "specialty_id" is require'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            doctor_id = data['doctor_id']
+        except KeyError:
+            return Response({'detail': 'key "doctor_id" is require'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            data['specialty'] = Specialty.objects.get(id = specialty_id)
+        except:
+            return Response({'detail': 'no find specialty has id = ' + str(specialty_id)}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            data['doctor'] = Doctor.objects.get(id = doctor_id)
+        except:
+            return Response({'detail': 'no find doctor has id = ' + str(doctor_id)}, status=status.HTTP_400_BAD_REQUEST)
+        if (SpecialtyDoctor.objects.filter(specialty=data['specialty'], doctor=data['doctor']).exists()):
+            return Response({'detail': 'specialty_doctor is exist'}, status=status.HTTP_400_BAD_REQUEST)
+        return super().update(request, *args, **kwargs)
+    
+    # partial_update
+    def partial_update(self, request, *args, **kwargs):
+        print("partial_update specialty_doctor")
+        return super().partial_update(request, *args, **kwargs)
+    
+    # destroy
+    def destroy(self, request, *args, **kwargs):
+        print("destroy specialty_doctor")
+        JWTAuthentication.authenticate(self, request)
+        # check permission Doctor of specialty_doctor
+        if (not IsDoctorPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        else:
+            # lấy doctor
+            doctor = Doctor.objects.get(account=request.account)
+            # lấy specialty_doctor
+            specialty_doctor = self.get_object()
+            # check doctor is specialty_doctor
+            if (str(doctor.id) != str(specialty_doctor.doctor.id)):
+                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
+
     def get_queryset(self):
         queryset = self.queryset
         params = self.request.query_params
@@ -515,17 +1824,63 @@ class SpecialtyDoctorViewSet(viewsets.ModelViewSet):
         queryset = queryset.filter(**filter_kwargs)
 
         return queryset
+    
+# delete some specialty_doctors
+class DeleteSpecialtyDoctors(GenericAPIView):
+    def post(self, request, *args, **kwargs):
+        specialty_doctor_ids = request.data.get('specialty_doctor_ids', [])
+        if (specialty_doctor_ids == []):
+            return Response({'detail': 'key "specialty_doctor_ids" is require'}, status=status.HTTP_400_BAD_REQUEST)
+        # Xác định các đối tượng cần xoá
+        for i in specialty_doctor_ids:
+            try:
+                SpecialtyDoctor.objects.get(id = i)
+            except:
+                return Response({'detail': 'no find specialty_doctor has id = '+str(i)}, status=status.HTTP_400_BAD_REQUEST)
+        # check permission Doctor of list of specialty_doctor
+        if (not IsDoctorPermission.has_permission(self, request, self)):
+            return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+        else:
+            # lấy doctor
+            doctor = Doctor.objects.get(account=request.account)
+            # lấy specialty_doctor
+            specialty_doctors = SpecialtyDoctor.objects.filter(id__in=specialty_doctor_ids)
+            # check doctor is specialty_doctor
+            for i in specialty_doctors:
+                if (str(doctor.id) != str(i.doctor.id)):
+                    return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)    
+        
+        specialty_doctors_to_delete = SpecialtyDoctor.objects.filter(id__in=specialty_doctor_ids)
 
+        # Thực hiện xoá đối tượng
+        specialty_doctors_to_delete.delete()
+        return Response({'message': 'Xoá thành công'}, status=status.HTTP_204_NO_CONTENT)
+
+# tool
 @authentication_classes([])
 class ToolViewSet(viewsets.ModelViewSet):
     queryset = Tool.objects.all()
     serializer_class = ToolSerializer
 
+@authentication_classes([])
+class DeleteTools(GenericAPIView):
+    def post(self, request, *args, **kwargs):
+        tool_ids = request.data.get('tool_ids', [])
+        if (tool_ids == []):
+            return Response({'detail': 'key "tool_ids" is require'}, status=status.HTTP_400_BAD_REQUEST)
+        # Xác định các đối tượng cần xoá
+        for i in tool_ids:
+            try:
+                Tool.objects.get(id = i)
+            except:
+                return Response({'detail': 'no find tool has id = '+str(i)}, status=status.HTTP_400_BAD_REQUEST)
+        tools_to_delete = Tool.objects.filter(id__in=tool_ids)
+        # Thực hiện xoá đối tượng
+        tools_to_delete.delete()
+        return Response({'message': 'Xoá thành công'}, status=status.HTTP_204_NO_CONTENT)
 
 from django.conf import settings
 from rest_framework import generics
-
-
 
 from rest_framework.pagination import PageNumberPagination
 class CustomPagination(PageNumberPagination):
@@ -833,479 +2188,3 @@ class UserPasswordUpdateAPIView(generics.UpdateAPIView): #Ten User nhung that ra
         else:
             return Response({'message': 'Incorrect Old Password', 'oldpassword':str(oldpassword),'hash_oldpassword':str(hash_password(oldpassword)),'instance_passwrod': str(instance.password)}, status=status.HTTP_400_BAD_REQUEST)
         
-# create GetAppointment
-@permission_classes([IsUserPermission])
-class GetAppointment(GenericAPIView):
-    serializer_class = GetAppointmentSerializer
-    def get(self, request, *args, **kwargs):
-        print(111)
-        # get user by account
-        try:
-            user = User.objects.get(account=request.account)
-        except User.DoesNotExist:
-            return Response({'detail': 'user is not exist'}, status=status.HTTP_400_BAD_REQUEST)
-        # get appointment by user
-        appointment = Appointment.objects.filter(user=user)
-        # chia appointment thanh 3 list là appointment sắp đến, appointment chưa xác nhận, appointment đã xác nhận
-        appointment_coming = []
-        appointment_not_confirm = []
-        appointment_confirmed = []
-        appointment_cancel = []
-        for i in appointment:
-            if i.status == 0:
-                appointment_not_confirm.append(i)
-            elif i.status == 1:
-                if i.date < datetime.date.today() or (i.date == datetime.date.today() and i.schedule_doctor.schedule.end < datetime.datetime.now().time()):
-                    appointment_confirmed.append(i)
-                else:
-                    appointment_coming.append(i)
-            elif i.status == 2:
-                appointment_cancel.append(i)
-
-        print(appointment_coming)
-        print(appointment_not_confirm)
-        print(appointment_confirmed)
-        print(appointment_cancel)
-
-        serializer_data = {
-            'coming': AppointmentSerializer(appointment_coming, many=True).data,
-            'not_confirm': AppointmentSerializer(appointment_not_confirm, many=True).data,
-            'confirmed': AppointmentSerializer(appointment_confirmed, many=True).data,
-            'cancel': AppointmentSerializer(appointment_cancel, many=True).data
-        }
-        print(2)
-        serializer = GetAppointmentSerializer(data=serializer_data)
-        serializer.is_valid()
-        print(3)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-    
-# create RatingAppointment
-@permission_classes([IsUserPermission])
-class RatingAppointment(GenericAPIView):
-    serializer_class = AppointmentSerializer
-    def post(self, request, *args, **kwargs):
-        # kiểm tra user có phải là user của appointment   
-        try:
-            user = User.objects.get(account=request.account)
-        except User.DoesNotExist:
-            return Response({'detail': 'user is not exist'}, status=status.HTTP_400_BAD_REQUEST)
-        try:
-            appointment = Appointment.objects.get(id=kwargs['pk'])
-        except Appointment.DoesNotExist:
-            return Response({'detail': 'appointment is not exist'}, status=status.HTTP_400_BAD_REQUEST)
-        if (user != appointment.user):
-            return Response({'detail': 'user is not user of appointment'}, status=status.HTTP_400_BAD_REQUEST)
-        # update rating cho bác sĩ
-        if (appointment.rating == 0):
-            doctor = appointment.schedule_doctor.doctor
-            doctor.num_of_rating += 1
-            try:
-                rating_value = float(request.data['rating'])
-            except KeyError:
-                return Response({'detail': 'rating is not exist'}, status=status.HTTP_400_BAD_REQUEST)
-            except ValueError:
-                rating_value = 0.0
-            doctor.rating = (doctor.rating * (doctor.num_of_rating - 1) + rating_value) / doctor.num_of_rating
-            doctor.save()
-        else:
-            return Response({'detail': 'appointment has been rated'}, status=status.HTTP_400_BAD_REQUEST)
-        # update rating cho appointment
-        appointment.rating = rating_value
-        appointment.save()
-        serializer = AppointmentSerializer(appointment)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-# create StatusAppointment 
-@permission_classes([IsUserPermission | IsDoctorPermission])
-class StatusAppointment(GenericAPIView):
-    serializer_class = AppointmentSerializer
-    def post(self, request, *args, **kwargs):
-        try:
-            doctor = Doctor.objects.get(account=request.account)
-            try:
-                appointment = Appointment.objects.get(id=kwargs['pk'])
-            except Appointment.DoesNotExist:
-                return Response({'detail': 'appointment is not exist'}, status=status.HTTP_400_BAD_REQUEST)
-            if (doctor != appointment.schedule_doctor.doctor):
-                return Response({'detail': 'doctor is not doctor of appointment'}, status=status.HTTP_400_BAD_REQUEST)
-        except Doctor.DoesNotExist:
-            user = User.objects.get(account=request.account)
-            try:
-                appointment = Appointment.objects.get(id=kwargs['pk'])
-            except Appointment.DoesNotExist:
-                return Response({'detail': 'appointment is not exist'}, status=status.HTTP_400_BAD_REQUEST)
-            if (user != appointment.user):
-                return Response({'detail': 'user is not user of appointment'}, status=status.HTTP_400_BAD_REQUEST)
-        # update status cho appointment
-        try:
-            appointment.status = request.data['status']
-        except KeyError:
-            return Response({'detail': 'status is not exist'}, status=status.HTTP_400_BAD_REQUEST)
-        appointment.save()
-        serializer = AppointmentSerializer(appointment) 
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-# user
-@authentication_classes([])
-class DeleteUsers(GenericAPIView):
-    def post(self, request, *args, **kwargs):
-        user_ids = request.data.get('user_ids', [])
-        if (user_ids == []):
-            return Response({'detail': 'key "user_ids" is require'}, status=status.HTTP_400_BAD_REQUEST)
-        # Xác định các đối tượng cần xoá
-        for i in user_ids:
-            try:
-                User.objects.get(id = i)
-            except:
-                return Response({'detail': 'no find user has id = '+str(i)}, status=status.HTTP_400_BAD_REQUEST)
-        users_to_delete = User.objects.filter(id__in=user_ids)
-        # lấy các account của users_to_delete
-        accounts_to_delete = Account.objects.filter(id__in=users_to_delete.values('account'))
-        # lấy các appointment của users_to_delete
-        appointments_to_delete = Appointment.objects.filter(user__in=users_to_delete)
-
-        print(users_to_delete)
-        print(accounts_to_delete)
-        print(appointments_to_delete)
-
-        # Thực hiện xoá đối tượng
-        appointments_to_delete.delete()
-        accounts_to_delete.delete()
-        users_to_delete.delete()
-        return Response({'message': 'Xoá thành công'}, status=status.HTTP_204_NO_CONTENT)
-
-@authentication_classes([])
-class DeleteAdmins(GenericAPIView):
-    def post(self, request, *args, **kwargs):
-        admin_ids = request.data.get('admin_ids', [])
-        if (admin_ids == []):
-            return Response({'detail': 'key "admin_ids" is require'}, status=status.HTTP_400_BAD_REQUEST)
-        # Xác định các đối tượng cần xoá
-        for i in admin_ids:
-            try:
-                Admin.objects.get(id = i)
-            except:
-                return Response({'detail': 'no find admin has id = '+str(i)}, status=status.HTTP_400_BAD_REQUEST)
-        admins_to_delete = Admin.objects.filter(id__in=admin_ids)
-        # lấy các account của admins_to_delete
-        accounts_to_delete = Account.objects.filter(id__in=admins_to_delete.values('account'))
-        # Thực hiện xoá đối tượng
-        accounts_to_delete.delete()
-        admins_to_delete.delete()
-        return Response({'message': 'Xoá thành công'}, status=status.HTTP_204_NO_CONTENT)
-
-@authentication_classes([])
-class DeleteHospitals(GenericAPIView):
-    def post(self, request, *args, **kwargs):
-        hospital_ids = request.data.get('hospital_ids', [])
-        if (hospital_ids == []):
-            return Response({'detail': 'key "hospital_ids" is require'}, status=status.HTTP_400_BAD_REQUEST)
-        # Xác định các đối tượng cần xoá
-        for i in hospital_ids:
-            try:
-                Hospital.objects.get(id = i)
-            except:
-                return Response({'detail': 'no find hospital has id = '+str(i)}, status=status.HTTP_400_BAD_REQUEST)
-        hospitals_to_delete = Hospital.objects.filter(id__in=hospital_ids)
-        # lấy các account của hospitals_to_delete
-        accounts_to_delete = Account.objects.filter(id__in=hospitals_to_delete.values('account'))
-        # lấy các doctor của hospitals_to_delete
-        doctors_to_delete = Doctor.objects.filter(hospital__in=hospitals_to_delete)
-        # lấy các specialty_doctor của hospitals_to_delete
-        specialty_doctors_to_delete = SpecialtyDoctor.objects.filter(doctor__in=doctors_to_delete)
-        # lấy các service_doctor của hospitals_to_delete
-        service_doctors_to_delete = ServiceDoctor.objects.filter(doctor__in=doctors_to_delete)
-        # lấy các schedule của hospitals_to_delete
-        schedules_to_delete = Schedule.objects.filter(schedule_doctor__doctor__in=doctors_to_delete)
-        # lấy các schedule_doctor của hospitals_to_delete
-        schedule_doctors_to_delete = Scheduler_Doctor.objects.filter(doctor__in=doctors_to_delete)
-        # lấy các appointment của hospitals_to_delete
-        appointments_to_delete = Appointment.objects.filter(schedule_doctor__doctor__in=doctors_to_delete)
-        # lấy các blog của hospitals_to_delete
-        blogs_to_delete = Blog.objects.filter(id_hospital__in=hospitals_to_delete)
-        # Thực hiện xoá đối tượng
-        appointments_to_delete.delete()
-        schedule_doctors_to_delete.delete()
-        schedules_to_delete.delete()
-        service_doctors_to_delete.delete()
-        specialty_doctors_to_delete.delete()
-        doctors_to_delete.delete()
-        blogs_to_delete.delete()
-        accounts_to_delete.delete()
-        hospitals_to_delete.delete()
-        return Response({'message': 'Xoá thành công'}, status=status.HTTP_204_NO_CONTENT)
-    
-@authentication_classes([])
-class DeleteDoctors(GenericAPIView):
-    def post(self, request, *args, **kwargs):
-        doctor_ids = request.data.get('doctor_ids', [])
-        if (doctor_ids == []):
-            return Response({'detail': 'key "doctor_ids" is require'}, status=status.HTTP_400_BAD_REQUEST)
-        # Xác định các đối tượng cần xoá
-        for i in doctor_ids:
-            try:
-                Doctor.objects.get(id = i)
-            except:
-                return Response({'detail': 'no find doctor has id = '+str(i)}, status=status.HTTP_400_BAD_REQUEST)
-        doctors_to_delete = Doctor.objects.filter(id__in=doctor_ids)
-        # lấy các account của doctors_to_delete
-        accounts_to_delete = Account.objects.filter(id__in=doctors_to_delete.values('account'))
-        # lấy các specialty_doctor của doctors_to_delete
-        specialty_doctors_to_delete = SpecialtyDoctor.objects.filter(doctor__in=doctors_to_delete)
-        # lấy các service_doctor của doctors_to_delete
-        service_doctors_to_delete = ServiceDoctor.objects.filter(doctor__in=doctors_to_delete)
-        # lấy các schedule của doctors_to_delete
-        schedules_to_delete = Schedule.objects.filter(schedule_doctor__doctor__in=doctors_to_delete)
-        # lấy các schedule_doctor của doctors_to_delete
-        schedule_doctors_to_delete = Scheduler_Doctor.objects.filter(doctor__in=doctors_to_delete)
-        # lấy các appointment của doctors_to_delete
-        appointments_to_delete = Appointment.objects.filter(schedule_doctor__doctor__in=doctors_to_delete)
-        # lấy các blog của doctors_to_delete
-        blogs_to_delete = Blog.objects.filter(id_doctor__in=doctors_to_delete)
-        # Thực hiện xoá đối tượng
-        appointments_to_delete.delete()
-        schedule_doctors_to_delete.delete()
-        schedules_to_delete.delete()
-        service_doctors_to_delete.delete()
-        specialty_doctors_to_delete.delete()
-        blogs_to_delete.delete()
-        accounts_to_delete.delete()
-        doctors_to_delete.delete()
-        return Response({'message': 'Xoá thành công'}, status=status.HTTP_204_NO_CONTENT)
-    
-@authentication_classes([])
-class DeleteSpecialties(GenericAPIView):
-    def post(self, request, *args, **kwargs):
-        specialty_ids = request.data.get('specialty_ids', [])
-        if (specialty_ids == []):
-            return Response({'detail': 'key "specialty_ids" is require'}, status=status.HTTP_400_BAD_REQUEST)
-        # Xác định các đối tượng cần xoá
-        for i in specialty_ids:
-            try:
-                Specialty.objects.get(id = i)
-            except:
-                return Response({'detail': 'no find specialty has id = '+str(i)}, status=status.HTTP_400_BAD_REQUEST)
-        specialties_to_delete = Specialty.objects.filter(id__in=specialty_ids)
-        # lấy các specialty_doctor của specialties_to_delete
-        specialty_doctors_to_delete = SpecialtyDoctor.objects.filter(specialty__in=specialties_to_delete)
-
-        # Thực hiện xoá đối tượng
-        specialty_doctors_to_delete.delete()
-        specialties_to_delete.delete()
-        return Response({'message': 'Xoá thành công'}, status=status.HTTP_204_NO_CONTENT)
-    
-@authentication_classes([])
-class DeleteSpecialtyDoctors(GenericAPIView):
-    def post(self, request, *args, **kwargs):
-        specialty_doctor_ids = request.data.get('specialty_doctor_ids', [])
-        if (specialty_doctor_ids == []):
-            return Response({'detail': 'key "specialty_doctor_ids" is require'}, status=status.HTTP_400_BAD_REQUEST)
-        # Xác định các đối tượng cần xoá
-        for i in specialty_doctor_ids:
-            try:
-                SpecialtyDoctor.objects.get(id = i)
-            except:
-                return Response({'detail': 'no find specialty_doctor has id = '+str(i)}, status=status.HTTP_400_BAD_REQUEST)
-        specialty_doctors_to_delete = SpecialtyDoctor.objects.filter(id__in=specialty_doctor_ids)
-
-        # Thực hiện xoá đối tượng
-        specialty_doctors_to_delete.delete()
-        return Response({'message': 'Xoá thành công'}, status=status.HTTP_204_NO_CONTENT)
-    
-@authentication_classes([])
-class DeleteServices(GenericAPIView):
-    def post(self, request, *args, **kwargs):
-        service_ids = request.data.get('service_ids', [])
-        if (service_ids == []):
-            return Response({'detail': 'key "service_ids" is require'}, status=status.HTTP_400_BAD_REQUEST)
-        # Xác định các đối tượng cần xoá
-        for i in service_ids:
-            try:
-                Service.objects.get(id = i)
-            except:
-                return Response({'detail': 'no find service has id = '+str(i)}, status=status.HTTP_400_BAD_REQUEST)
-        services_to_delete = Service.objects.filter(id__in=service_ids)
-        # lấy các service_doctor của services_to_delete
-        service_doctors_to_delete = ServiceDoctor.objects.filter(service__in=services_to_delete)
-
-        # Thực hiện xoá đối tượng
-        service_doctors_to_delete.delete()
-        services_to_delete.delete()
-        return Response({'message': 'Xoá thành công'}, status=status.HTTP_204_NO_CONTENT)
-    
-@authentication_classes([])
-class DeleteServiceDoctors(GenericAPIView):
-    def post(self, request, *args, **kwargs):
-        service_doctor_ids = request.data.get('service_doctor_ids', [])
-        if (service_doctor_ids == []):
-            return Response({'detail': 'key "service_doctor_ids" is require'}, status=status.HTTP_400_BAD_REQUEST)
-        # Xác định các đối tượng cần xoá
-        for i in service_doctor_ids:
-            try:
-                ServiceDoctor.objects.get(id = i)
-            except:
-                return Response({'detail': 'no find service_doctor has id = '+str(i)}, status=status.HTTP_400_BAD_REQUEST)
-        service_doctors_to_delete = ServiceDoctor.objects.filter(id__in=service_doctor_ids)
-        
-        # Thực hiện xoá đối tượng
-        service_doctors_to_delete.delete()
-        return Response({'message': 'Xoá thành công'}, status=status.HTTP_204_NO_CONTENT)
-    
-@authentication_classes([])
-class DeleteSchedules(GenericAPIView):
-    def post(self, request, *args, **kwargs):
-        schedule_ids = request.data.get('schedule_ids', [])
-        if (schedule_ids == []):
-            return Response({'detail': 'key "schedule_ids" is require'}, status=status.HTTP_400_BAD_REQUEST)
-        # Xác định các đối tượng cần xoá
-        for i in schedule_ids:
-            try:
-                Schedule.objects.get(id = i)
-            except:
-                return Response({'detail': 'no find schedule has id = '+str(i)}, status=status.HTTP_400_BAD_REQUEST)
-        schedules_to_delete = Schedule.objects.filter(id__in=schedule_ids)
-        # lấy các schedule_doctor của schedules_to_delete
-        schedule_doctors_to_delete = Scheduler_Doctor.objects.filter(schedule__in=schedules_to_delete)
-        # lấy các appointment của schedules_to_delete
-        appointments_to_delete = Appointment.objects.filter(schedule_doctor__schedule__in=schedules_to_delete)
-
-        # Thực hiện xoá đối tượng
-        appointments_to_delete.delete()
-        schedule_doctors_to_delete.delete()
-        schedules_to_delete.delete()
-        return Response({'message': 'Xoá thành công'}, status=status.HTTP_204_NO_CONTENT)
-
-#create AddSchedulerDoctors
-@authentication_classes([])
-class AddSchedulerDoctors(GenericAPIView):
-    serializer_class = SchedulerDoctorSerializer
-    def post(self, request, *args, **kwargs):
-        # data = request.data.copy()
-        try: 
-            request_data = json.loads(request.body.decode('utf-8'))
-        except json.JSONDecodeError:
-            return Response({'detail': 'Invalid JSON format in the request body'}, status=status.HTTP_400_BAD_REQUEST)
-        # print(data)
-        print(request_data)
-        doctor_id = request_data.get('doctor_id', None)
-        print('doctor_id: ', doctor_id)
-        if doctor_id is None:
-            return Response({'detail': 'key "doctor_id" is require'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        schedule_ids = request_data.get('schedule_ids', [])
-        print('schedule_ids: ', schedule_ids)
-        if schedule_ids == []:
-            return Response({'detail': 'key "schedule_ids" is require'}, status=status.HTTP_400_BAD_REQUEST)
-        try: 
-            doctor = Doctor.objects.get(id = doctor_id)
-        except:
-            return Response({'detail': 'no find doctor has id = '+str(doctor_id)}, status=status.HTTP_400_BAD_REQUEST)
-        
-        data_schedule_doctor = []
-        schedule_doctors = []
-
-        for i in schedule_ids:
-            try:
-                schedule = Schedule.objects.get(id = i)
-            except:
-                return Response({'detail': 'no find schedule has id = '+str(i)}, status=status.HTTP_400_BAD_REQUEST)
-            if (Scheduler_Doctor.objects.filter(doctor=doctor, schedule=schedule).exists()):
-                return Response({'detail': 'schedule_doctor: schedule_id = ' + str(i) + ' doctor_id = '+ str(doctor_id) + ' is exist'}, status=status.HTTP_400_BAD_REQUEST)
-            data_schedule_doctor.append({'doctor': doctor, 'schedule': schedule})
-
-        for i in data_schedule_doctor:
-            schedule_doctor = Scheduler_Doctor.objects.create(doctor=i['doctor'], schedule=i['schedule'])
-            schedule_doctors.append(schedule_doctor)    
-        schedule_doctor.save()    
-
-        serializer = SchedulerDoctorSerializer(schedule_doctors, many=True)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-@authentication_classes([])
-class DeleteSchedulerDoctors(GenericAPIView):
-    def post(self, request, *args, **kwargs):
-        scheduler_doctor_ids = request.data.get('scheduler_doctor_ids', [])
-        if (scheduler_doctor_ids == []):
-            return Response({'detail': 'key "scheduler_doctor_ids" is require'}, status=status.HTTP_400_BAD_REQUEST)
-        # Xác định các đối tượng cần xoá
-        for i in scheduler_doctor_ids:
-            try:
-                Scheduler_Doctor.objects.get(id = i)
-            except:
-                return Response({'detail': 'no find scheduler_doctor has id = '+str(i)}, status=status.HTTP_400_BAD_REQUEST)
-        scheduler_doctors_to_delete = Scheduler_Doctor.objects.filter(id__in=scheduler_doctor_ids)
-        # lấy các appointment của scheduler_doctors_to_delete
-        appointments_to_delete = Appointment.objects.filter(schedule_doctor__in=scheduler_doctors_to_delete)
-        
-        # Thực hiện xoá đối tượng
-        appointments_to_delete.delete()
-        scheduler_doctors_to_delete.delete()
-        return Response({'message': 'Xoá thành công'}, status=status.HTTP_204_NO_CONTENT) 
-    
-@authentication_classes([])
-class DeleteAppointments(GenericAPIView):
-    def post(self, request, *args, **kwargs):
-        appointment_ids = request.data.get('appointment_ids', [])
-        if (appointment_ids == []):
-            return Response({'detail': 'key "appointment_ids" is require'}, status=status.HTTP_400_BAD_REQUEST)
-        # Xác định các đối tượng cần xoá
-        for i in appointment_ids:
-            try:
-                Appointment.objects.get(id = i)
-            except:
-                return Response({'detail': 'no find appointment has id = '+str(i)}, status=status.HTTP_400_BAD_REQUEST)
-        appointments_to_delete = Appointment.objects.filter(id__in=appointment_ids)
-        # Thực hiện xoá đối tượng
-        appointments_to_delete.delete()
-        return Response({'message': 'Xoá thành công'}, status=status.HTTP_204_NO_CONTENT)
-    
-@authentication_classes([])
-class DeleteTools(GenericAPIView):
-    def post(self, request, *args, **kwargs):
-        tool_ids = request.data.get('tool_ids', [])
-        if (tool_ids == []):
-            return Response({'detail': 'key "tool_ids" is require'}, status=status.HTTP_400_BAD_REQUEST)
-        # Xác định các đối tượng cần xoá
-        for i in tool_ids:
-            try:
-                Tool.objects.get(id = i)
-            except:
-                return Response({'detail': 'no find tool has id = '+str(i)}, status=status.HTTP_400_BAD_REQUEST)
-        tools_to_delete = Tool.objects.filter(id__in=tool_ids)
-        # Thực hiện xoá đối tượng
-        tools_to_delete.delete()
-        return Response({'message': 'Xoá thành công'}, status=status.HTTP_204_NO_CONTENT)
-    
-@authentication_classes([])
-class DeleteCategories(GenericAPIView):
-    def post(self, request, *args, **kwargs):
-        category_ids = request.data.get('category_ids', [])
-        if (category_ids == []):
-            return Response({'detail': 'key "category_ids" is require'}, status=status.HTTP_400_BAD_REQUEST)
-        # Xác định các đối tượng cần xoá
-        for i in category_ids:
-            try:
-                Category.objects.get(id = i)
-            except:
-                return Response({'detail': 'no find category has id = '+str(i)}, status=status.HTTP_400_BAD_REQUEST)
-        categories_to_delete = Category.objects.filter(id__in=category_ids)
-        # Thực hiện xoá đối tượng
-        categories_to_delete.delete()
-        return Response({'message': 'Xoá thành công'}, status=status.HTTP_204_NO_CONTENT)
-    
-@authentication_classes([])
-class DeleteBlogs(GenericAPIView):
-    def post(self, request, *args, **kwargs):
-        blog_ids = request.data.get('blog_ids', [])
-        if (blog_ids == []):
-            return Response({'detail': 'key "blog_ids" is require'}, status=status.HTTP_400_BAD_REQUEST)
-        # Xác định các đối tượng cần xoá
-        for i in blog_ids:
-            try:
-                Blog.objects.get(id = i)
-            except:
-                return Response({'detail': 'no find blog has id = '+str(i)}, status=status.HTTP_400_BAD_REQUEST)
-        blogs_to_delete = Blog.objects.filter(id__in=blog_ids)
-        # Thực hiện xoá đối tượng
-        blogs_to_delete.delete()
-        return Response({'message': 'Xoá thành công'}, status=status.HTTP_204_NO_CONTENT)
