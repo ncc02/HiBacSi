@@ -165,7 +165,9 @@ STATICFILES_DIRS = [
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-MEDIA_URL = 'media/'
+# get server path      http://ncc02.pythonanywhere.com/
+# SERVER_PATH = 'http://127.0.0.1:8080/'
+# MEDIA_URL = f'media/'
 # STATIC_ROOT = "/home/ncc02/hibacsi/static"
 # or, eg,
 # STATIC_ROOT = os.path.join(BASE_DIR, "static")

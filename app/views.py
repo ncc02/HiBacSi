@@ -45,12 +45,9 @@ class AccountViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         print("update account")
         JWTAuthentication.authenticate(self, request)
-        # check permission Admin and User has id = kwargs['pk']
-        if ((not IsAdminPermission.has_permission(self, request, self)) and (not IsUserPermission.has_permission(self, request, self))):
+        # check permission Admin and User has id = kwargs['pk'], Doctor has id = kwargs['pk'], Hospital has id = kwargs['pk']
+        if (str(request.account.id) != str(kwargs['pk'])):
             return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
-        elif (IsUserPermission.has_permission(self, request, self)):
-            if (str(request.account.id) != str(kwargs['pk'])):
-                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
         return super().update(request, *args, **kwargs)
     
     # retrieve
@@ -61,13 +58,9 @@ class AccountViewSet(viewsets.ModelViewSet):
     def partial_update(self, request, *args, **kwargs):
         print("partial_update account")
         JWTAuthentication.authenticate(self, request)
-        # check permission Admin and User has id = kwargs['pk']
-        if ((not IsAdminPermission.has_permission(self, request, self)) and (not IsUserPermission.has_permission(self, request, self))):
+        # check permission Admin and User has id = kwargs['pk'], Doctor has id = kwargs['pk'], Hospital has id = kwargs['pk']
+        if (str(request.account.id) != str(kwargs['pk'])):
             return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
-        elif (IsUserPermission.has_permission(self, request, self)):
-            if (str(request.account.id) != str(kwargs['pk'])):
-                return Response({'detail': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
-            
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=True) 
         serializer.is_valid(raise_exception=True)
