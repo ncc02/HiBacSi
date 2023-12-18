@@ -15,6 +15,7 @@ from .models import Account
 from app.permissions import IsAdminPermission, IsDoctorPermission, IsHospitalPermission, IsUserPermission
 # JWTAuthentication
 from authentication.backends import JWTAuthentication
+from urllib.parse import urljoin
 
 
 
@@ -1463,15 +1464,25 @@ class GetAppointment(GenericAPIView):
             'confirmed': AppointmentSerializer(appointment_confirmed, many=True).data,
             'cancel': AppointmentSerializer(appointment_cancel, many=True).data
         }
-        print(2)
+
         serializer = GetAppointmentSerializer(data=serializer_data)
         serializer.is_valid()
-        print(3)
+        # add http for avatar
+        base_url = r'http://' + request.get_host()
+        for type_status in serializer.data:
+            for i in range(len(serializer.data[type_status])):
+                if str(serializer.data[type_status][i]['schedule_doctor']['doctor']['account']['avatar']) != '':
+                    serializer.data[type_status][i]['schedule_doctor']['doctor']['account']['avatar'] = urljoin(base_url, serializer.data[type_status][i]['schedule_doctor']['doctor']['account']['avatar'])
+                if str(serializer.data[type_status][i]['user']['account']['avatar']) != '':
+                    serializer.data[type_status][i]['user']['account']['avatar'] = urljoin(base_url, serializer.data[type_status][i]['user']['account']['avatar'])
+                if str(serializer.data[type_status][i]['schedule_doctor']['doctor']['hospital']['account']['avatar']) != '':
+                    serializer.data[type_status][i]['schedule_doctor']['doctor']['hospital']['account']['avatar'] = urljoin(base_url, serializer.data[type_status][i]['schedule_doctor']['doctor']['hospital']['account']['avatar'])
+        print(serializer.data['not_confirm'][0]['user']['account']['avatar'])
         return Response(serializer.data, status=status.HTTP_200_OK)
     
 # create RatingAppointment
 @permission_classes([IsUserPermission])
-class RatingAppointment(GenericAPIView):
+class RatingAppointment(GenericAPIView):    
     serializer_class = AppointmentSerializer
     def post(self, request, *args, **kwargs):
         # kiểm tra user có phải là user của appointment   
