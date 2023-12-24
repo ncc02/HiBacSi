@@ -57,6 +57,23 @@ class LoginView(GenericAPIView):
                     return Response({'detail': 'Hospital does not exist'}, status=status.HTTP_400_BAD_REQUEST)
                 hospital = HospitalSerializer(hospital)
                 serializer = {'hospital': hospital.data, **serializer_base}
+            # add http for avatar
+            base_url = r'http://' + request.get_host()
+            if 'account' in serializer:
+                if serializer['account']['avatar'] != None:
+                    serializer['account']['avatar'] = base_url + serializer['account']['avatar']
+            if 'user' in serializer:
+                if serializer['user']['account']['avatar'] != None:
+                    serializer['user']['account']['avatar'] = base_url + serializer['user']['account']['avatar']
+            if 'doctor' in serializer:
+                if serializer['doctor']['account']['avatar'] != None:
+                    serializer['doctor']['account']['avatar'] = base_url + serializer['doctor']['account']['avatar']
+            if 'hospital' in serializer:
+                if serializer['hospital']['account']['avatar'] != None:
+                    serializer['hospital']['account']['avatar'] = base_url + serializer['hospital']['account']['avatar']
+            if 'admin' in serializer:
+                if serializer['admin']['account']['avatar'] != None:
+                    serializer['admin']['account']['avatar'] = base_url + serializer['admin']['account']['avatar']
             return Response(serializer, status=status.HTTP_200_OK)
         return Response({'detail': 'Invalid username or password'}, status=status.HTTP_401_UNAUTHORIZED)
 
