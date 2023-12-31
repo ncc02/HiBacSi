@@ -363,6 +363,14 @@ class BlogViewSet(viewsets.ModelViewSet):
     queryset = Blog.objects.all()
     serializer_class = BlogSerializer
 
+    def retrieve(self, request, *args, **kwargs):
+        # Lấy đối tượng blog
+        blog = self.get_object()
+        # Tăng số lượt xem của blog lên 1
+        blog.view += 1
+        blog.save()
+        return super().retrieve(request, *args, **kwargs)
+
     def get_queryset(self):
         queryset = self.queryset
         params = self.request.query_params
