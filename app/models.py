@@ -174,6 +174,7 @@ class Blog(models.Model):
     id_category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='blogs')
     title = models.CharField(max_length=255)
     content = models.TextField()
+    view = models.IntegerField(default=0)
     created_at = models.DateField(auto_now_add=True)
 
     def __str__(self):
