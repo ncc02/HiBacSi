@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from rest_framework.fields import empty
 from .models import *
 
 class AccountSerializer(serializers.ModelSerializer):
@@ -22,6 +23,10 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = '__all__'
+
+class UserStatisticalSerializer(serializers.Serializer):
+    user = UserSerializer()
+    count = serializers.IntegerField()
 
 class AdminSerializer(serializers.ModelSerializer):
     account = AccountSerializer()
@@ -99,6 +104,18 @@ class XDoctorSerializer(serializers.ModelSerializer):
         model = Doctor
         fields = '__all__'
 
+class AccountDoctorSerializer(serializers.ModelSerializer):
+    account = AccountSerializer()
+    # hospital = HospitalSerializer()
+    # specialties = SpecialtyDoctorSerializer(many=True, source='specialtydoctor_set')
+    # services = ServiceDoctorSerializer(many=True, source='servicedoctor_set')
+    class Meta:
+        model = Doctor
+        fields = '__all__'
+
+class DoctorStatisticalSerializer(serializers.Serializer):
+    doctor = AccountDoctorSerializer()
+    count = serializers.IntegerField()
 
 class ScheduleSerializer(serializers.ModelSerializer):
     class Meta:
@@ -178,6 +195,10 @@ class CategorySerializer(serializers.ModelSerializer ):
     class Meta:
         model = Category
         fields = '__all__'
+
+class CategoryStatisticalSerializer(serializers.Serializer):
+    category = CategorySerializer()
+    count = serializers.IntegerField()
 
 class BlogSerializer(serializers.ModelSerializer ):
     id_doctor = DoctorSerializer(required=False)

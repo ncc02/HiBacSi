@@ -363,6 +363,14 @@ class BlogViewSet(viewsets.ModelViewSet):
     queryset = Blog.objects.all()
     serializer_class = BlogSerializer
 
+    def retrieve(self, request, *args, **kwargs):
+        # Lấy đối tượng blog
+        blog = self.get_object()
+        # Tăng số lượt xem của blog lên 1
+        blog.view += 1
+        blog.save()
+        return super().retrieve(request, *args, **kwargs)
+
     def get_queryset(self):
         queryset = self.queryset
         params = self.request.query_params
@@ -2192,3 +2200,316 @@ class UserPasswordUpdateAPIView(generics.UpdateAPIView): #Ten User nhung that ra
         else:
             return Response({'message': 'Incorrect Old Password', 'oldpassword':str(oldpassword),'hash_oldpassword':str(hash_password(oldpassword)),'instance_passwrod': str(instance.password)}, status=status.HTTP_400_BAD_REQUEST)
         
+# statisticalAppointmentAPIView
+@authentication_classes([])
+class statisticalAppointmentAPIView(GenericAPIView):
+    def get(self, request):
+        # get scope param
+        try:
+            scope = request.query_params['scope']
+            print('scope: ', scope)  #week, month, year, all
+        except KeyError:
+            return Response({'detail': 'key "scope" is require'}, status=status.HTTP_400_BAD_REQUEST)
+        if scope not in ['week', 'month', 'year', 'all']:
+            return Response({'detail': 'scope must be week, month, year, all'}, status=status.HTTP_400_BAD_REQUEST)
+        # get appointment
+        if scope == 'all':
+            appointment = Appointment.objects.all()
+        elif scope == 'week':
+            appointment = Appointment.objects.filter(date__range=[datetime.date.today() - datetime.timedelta(days=7), datetime.date.today()])
+        elif scope == 'month':
+            appointment = Appointment.objects.filter(date__range=[datetime.date.today() - datetime.timedelta(days=30), datetime.date.today()])
+        elif scope == 'year':
+            appointment = Appointment.objects.filter(date__range=[datetime.date.today() - datetime.timedelta(days=365), datetime.date.today()])
+        print(len(appointment))
+        # total appointment (status = 1)
+        appointment_confirmed = appointment.filter(status=1)
+        total_appointment = len(appointment_confirmed)
+        # revenue = sum(doctor.price) for doctor in appointment
+        revenue = sum([appointment.schedule_doctor.doctor.price for appointment in appointment_confirmed])
+        print('total_appointment: ', total_appointment)
+        print('revenue: ', revenue)
+        # not_confirm 
+        appointment_not_confirm = appointment.filter(status=0)
+        num_appointment_not_confirm = len(appointment_not_confirm)
+        # cancel
+        appointment_cancel = appointment.filter(status=2)
+        num_appointment_cancel = len(appointment_cancel)
+
+        # bieu do thong ke doanh thu theo thoi gian
+        # cot x: thoi gian
+        time_row = []
+        if scope == 'all':
+            # get year start and end
+            start = appointment_confirmed.first().date.year
+            end = appointment_confirmed.last().date.year
+        elif scope == 'year': # 12 thang
+            start = datetime.date.today() - datetime.timedelta(days=365)
+            end = datetime.date.today()
+        elif scope == 'month': # 30 ngay
+            start = datetime.date.today() - datetime.timedelta(days=30)
+            end = datetime.date.today()
+        elif scope == 'week': # 7 ngay
+            start = datetime.date.today() - datetime.timedelta(days=7)
+            end = datetime.date.today()
+        
+        if scope == 'all': 
+            for i in range(start, end+1):
+                time_row.append(i)
+        elif scope == 'year':
+            current_date = datetime.date(start.year, start.month, 1)
+            while current_date <= end:
+                time_row.append(current_date.strftime('%Y-%m'))
+                # Tăng thêm 1 tháng
+                if current_date.month == 12:
+                    current_date = current_date.replace(year=current_date.year + 1, month=1)
+                else:
+                    current_date = current_date.replace(month=current_date.month + 1)
+        else:
+            current_date = start
+
+            while current_date <= end:
+                time_row.append(current_date.strftime('%Y-%m-%d'))
+                current_date += datetime.timedelta(days=1)
+
+        print(time_row) 
+
+        # cot y: doanh thu
+        revenue_col = []
+        if scope == 'all':
+            for i in range(start, end+1):
+                revenue_col.append(sum([appointment.schedule_doctor.doctor.price for appointment in appointment_confirmed if appointment.date.year == i]))
+        elif scope == 'year':
+            current_date = datetime.date(start.year, start.month, 1)
+            while current_date <= end:
+                revenue_col.append(sum([appointment.schedule_doctor.doctor.price for appointment in appointment_confirmed if appointment.date.strftime('%Y-%m') == current_date.strftime('%Y-%m')]))
+                # Tăng thêm 1 tháng
+                if current_date.month == 12:
+                    current_date = current_date.replace(year=current_date.year + 1, month=1)
+                else:
+                    current_date = current_date.replace(month=current_date.month + 1)
+        else:
+            current_date = start
+
+            while current_date <= end:
+                revenue_col.append(sum([appointment.schedule_doctor.doctor.price for appointment in appointment_confirmed if appointment.date.strftime('%Y-%m-%d') == current_date.strftime('%Y-%m-%d')]))
+                current_date += datetime.timedelta(days=1)
+
+        print(revenue_col)
+
+        return Response({
+            'total_appointment': total_appointment,
+            'revenue': revenue,
+            'num_appointment_not_confirm': num_appointment_not_confirm,
+            'num_appointment_cancel': num_appointment_cancel,
+            'time_row': time_row,
+            'revenue_col': revenue_col
+        }, status=status.HTTP_200_OK)
+    
+
+# statisticalTopDoctorAPIView
+@authentication_classes([])
+class statisticalTopDoctorAPIView(GenericAPIView): 
+    serializer_class = DoctorStatisticalSerializer
+    def get(self, request):
+        # get scope param
+        try:
+            scope = request.query_params['scope']
+            print('scope: ', scope)  #week, month, year, all
+        except KeyError:
+            return Response({'detail': 'key "scope" is require'}, status=status.HTTP_400_BAD_REQUEST)
+        if scope not in ['week', 'month', 'year', 'all']:
+            return Response({'detail': 'scope must be week, month, year, all'}, status=status.HTTP_400_BAD_REQUEST)
+        # get appointment
+        if scope == 'all':
+            appointment = Appointment.objects.all()
+        elif scope == 'week':
+            appointment = Appointment.objects.filter(date__range=[datetime.date.today() - datetime.timedelta(days=7), datetime.date.today()])
+        elif scope == 'month':
+            appointment = Appointment.objects.filter(date__range=[datetime.date.today() - datetime.timedelta(days=30), datetime.date.today()])
+        elif scope == 'year':
+            appointment = Appointment.objects.filter(date__range=[datetime.date.today() - datetime.timedelta(days=365), datetime.date.today()])
+        appointment_confirmed = appointment.filter(status=1)
+        # top doctor in appointment in scope
+        doctors = [appointment.schedule_doctor.doctor for appointment in appointment_confirmed]
+        # Sử dụng từ điển để đếm số lần xuất hiện của mỗi doctor_id
+        doctor_counts = {}
+        for doctor in doctors:
+            if doctor in doctor_counts:
+                doctor_counts[doctor] += 1
+            else:
+                doctor_counts[doctor] = 1
+        # Sắp xếp theo số lần xuất hiện giảm dần
+        sorted_doctor_counts = sorted(doctor_counts.items(), key=lambda x: x[1], reverse=True)
+        print(sorted_doctor_counts)
+        # change sorted_doctor_counts to {"doctor": doctor, "count": count}
+        sorted_doctor_counts = [{"doctor": i[0], "count": i[1]} for i in sorted_doctor_counts]
+        serializers = DoctorStatisticalSerializer(sorted_doctor_counts, many=True)
+        return Response(serializers.data, status=status.HTTP_200_OK)    
+    
+# statisticalTopUserAPIView
+@authentication_classes([])
+class statisticalTopUserAPIView(GenericAPIView): 
+    serializer_class = UserStatisticalSerializer
+    def get(self, request):
+        # get scope param
+        try:
+            scope = request.query_params['scope']
+            print('scope: ', scope)  #week, month, year, all
+        except KeyError:
+            return Response({'detail': 'key "scope" is require'}, status=status.HTTP_400_BAD_REQUEST)
+        if scope not in ['week', 'month', 'year', 'all']:
+            return Response({'detail': 'scope must be week, month, year, all'}, status=status.HTTP_400_BAD_REQUEST)
+        # get appointment
+        if scope == 'all':
+            appointment = Appointment.objects.all()
+        elif scope == 'week':
+            appointment = Appointment.objects.filter(date__range=[datetime.date.today() - datetime.timedelta(days=7), datetime.date.today()])
+        elif scope == 'month':
+            appointment = Appointment.objects.filter(date__range=[datetime.date.today() - datetime.timedelta(days=30), datetime.date.today()])
+        elif scope == 'year':
+            appointment = Appointment.objects.filter(date__range=[datetime.date.today() - datetime.timedelta(days=365), datetime.date.today()])
+        appointment_confirmed = appointment.filter(status=1)
+        # top user in appointment in scope
+        users = [appointment.user for appointment in appointment_confirmed]
+        # Sử dụng từ điển để đếm số lần xuất hiện của mỗi user_id
+        user_counts = {}
+        for user in users:
+            if user in user_counts:
+                user_counts[user] += 1
+            else:
+                user_counts[user] = 1
+        # Sắp xếp theo số lần xuất hiện giảm dần
+        sorted_user_counts = sorted(user_counts.items(), key=lambda x: x[1], reverse=True)
+        print(sorted_user_counts)
+        # change sorted_user_counts to {"user": user, "count": count}
+        sorted_user_counts = [{"user": i[0], "count": i[1]} for i in sorted_user_counts]
+        serializers = UserStatisticalSerializer(sorted_user_counts, many=True)
+        return Response(serializers.data, status=status.HTTP_200_OK)
+    
+
+# statisticalBlogAPIView
+@authentication_classes([])
+class statisticalBlogAPIView(GenericAPIView):
+    def get(self, request):
+        # get scope param
+        try:
+            scope = request.query_params['scope']
+            print('scope: ', scope)  #week, month, year, all
+        except KeyError:
+            return Response({'detail': 'key "scope" is require'}, status=status.HTTP_400_BAD_REQUEST)
+        if scope not in ['week', 'month', 'year', 'all']:
+            return Response({'detail': 'scope must be week, month, year, all'}, status=status.HTTP_400_BAD_REQUEST)
+        # get blog
+        if scope == 'all':
+            blog = Blog.objects.all()
+        elif scope == 'week':
+            blog = Blog.objects.filter(created_at__range=[datetime.date.today() - datetime.timedelta(days=7), datetime.date.today()])
+        elif scope == 'month':
+            blog = Blog.objects.filter(created_at__range=[datetime.date.today() - datetime.timedelta(days=30), datetime.date.today()])
+        elif scope == 'year':
+            blog = Blog.objects.filter(created_at__range=[datetime.date.today() - datetime.timedelta(days=365), datetime.date.today()])
+        # total blog
+        total_blog = len(blog)
+        # tổng view 
+        total_view = sum([i.view for i in blog])
+        # bieu do thong ke so luong truy cap blog
+        if scope in ['all', 'year']:
+            limit = 20
+        else:
+            limit = 10
+        # cot x: blog
+        blog_row = [i.title for i in blog]
+        # cot y: view
+        view_col = [i.view for i in blog]
+        # sap xep giam dan view_col ăn theo blog_row
+        view_col, blog_row = zip(*sorted(zip(view_col, blog_row), reverse=True))
+        # lay limit
+        blog_row = blog_row[:limit]
+        view_col = view_col[:limit]
+        print(blog_row)
+        print(view_col)
+        return Response({
+            'total_blog': total_blog,
+            'total_view': total_view,
+            'blog_row': blog_row,
+            'view_col': view_col
+        }, status=status.HTTP_200_OK)
+    
+# statisticalTopCategoryAPIView
+@authentication_classes([])
+class statisticalTopCategoryAPIView(GenericAPIView):
+    serializer_class = CategoryStatisticalSerializer
+    def get(self, request): 
+        # get scope param
+        try:
+            scope = request.query_params['scope']
+            print('scope: ', scope)  #week, month, year, all
+        except KeyError:
+            return Response({'detail': 'key "scope" is require'}, status=status.HTTP_400_BAD_REQUEST)
+        if scope not in ['week', 'month', 'year', 'all']:
+            return Response({'detail': 'scope must be week, month, year, all'}, status=status.HTTP_400_BAD_REQUEST)
+        # get blog
+        if scope == 'all':
+            blog = Blog.objects.all()
+        elif scope == 'week':
+            blog = Blog.objects.filter(created_at__range=[datetime.date.today() - datetime.timedelta(days=7), datetime.date.today()])
+        elif scope == 'month':
+            blog = Blog.objects.filter(created_at__range=[datetime.date.today() - datetime.timedelta(days=30), datetime.date.today()])
+        elif scope == 'year':
+            blog = Blog.objects.filter(created_at__range=[datetime.date.today() - datetime.timedelta(days=365), datetime.date.today()])
+        # top category in blog in scope
+        categories = [i.id_category for i in blog]
+        # Sử dụng từ điển để đếm số lần xuất hiện của mỗi category_id
+        category_counts = {}
+        for category in categories:
+            if category in category_counts:
+                category_counts[category] += 1
+            else:
+                category_counts[category] = 1
+        # Sắp xếp theo số lần xuất hiện giảm dần
+        sorted_category_counts = sorted(category_counts.items(), key=lambda x: x[1], reverse=True)
+        print(sorted_category_counts)
+        # change sorted_category_counts to {"category": category, "count": count}
+        sorted_category_counts = [{"category": i[0], "count": i[1]} for i in sorted_category_counts]
+        serializers = CategoryStatisticalSerializer(sorted_category_counts, many=True)
+        return Response(serializers.data, status=status.HTTP_200_OK)
+    
+# statisticalTopDoctorBlogAPIView
+@authentication_classes([])
+class statisticalTopDoctorBlogAPIView(GenericAPIView):
+    serializer_class = DoctorStatisticalSerializer
+    def get(self, request):
+        # get scope param
+        try:
+            scope = request.query_params['scope']
+            print('scope: ', scope)  #week, month, year, all
+        except KeyError:
+            return Response({'detail': 'key "scope" is require'}, status=status.HTTP_400_BAD_REQUEST)
+        if scope not in ['week', 'month', 'year', 'all']:
+            return Response({'detail': 'scope must be week, month, year, all'}, status=status.HTTP_400_BAD_REQUEST)
+        # get blog
+        if scope == 'all':
+            blog = Blog.objects.all()
+        elif scope == 'week':
+            blog = Blog.objects.filter(created_at__range=[datetime.date.today() - datetime.timedelta(days=7), datetime.date.today()])
+        elif scope == 'month':
+            blog = Blog.objects.filter(created_at__range=[datetime.date.today() - datetime.timedelta(days=30), datetime.date.today()])
+        elif scope == 'year':
+            blog = Blog.objects.filter(created_at__range=[datetime.date.today() - datetime.timedelta(days=365), datetime.date.today()])
+        # top doctor in blog in scope
+        doctors = [i.id_doctor for i in blog]
+        # Sử dụng từ điển để đếm số lần xuất hiện của mỗi doctor_id
+        doctor_counts = {}
+        for doctor in doctors:
+            if doctor in doctor_counts:
+                doctor_counts[doctor] += 1
+            else:
+                doctor_counts[doctor] = 1
+        # Sắp xếp theo số lần xuất hiện giảm dần
+        sorted_doctor_counts = sorted(doctor_counts.items(), key=lambda x: x[1], reverse=True)
+        print(sorted_doctor_counts)
+        # change sorted_doctor_counts to {"doctor": doctor, "count": count}
+        sorted_doctor_counts = [{"doctor": i[0], "count": i[1]} for i in sorted_doctor_counts]
+        serializers = DoctorStatisticalSerializer(sorted_doctor_counts, many=True)
+        return Response(serializers.data, status=status.HTTP_200_OK)

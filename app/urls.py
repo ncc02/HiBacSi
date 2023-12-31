@@ -88,6 +88,16 @@ urlpatterns = [
     # category
     path('deletecategories/', DeleteCategories.as_view(), name='deletecategories'),
 
+
+    # statistical
+    path('statisticalAppointment/', statisticalAppointmentAPIView.as_view(), name='statistical'),
+    path('statisticalTopDoctor/', statisticalTopDoctorAPIView.as_view(), name='statisticaltopdoctor'),
+    path('statisticalTopUser/', statisticalTopUserAPIView.as_view(), name='statisticaltopuser'),
+
+    path('statisticalBlog/', statisticalBlogAPIView.as_view(), name='statisticalblog'),
+    path('topCategory/', statisticalTopCategoryAPIView.as_view(), name='topcategory'),
+    path('topDoctorBlog/', statisticalTopDoctorBlogAPIView.as_view(), name='topdoctorblog'),
+
     path('test/', TestAPIView.as_view(), name='test'),
     path('', include(router.urls)),
 ]
